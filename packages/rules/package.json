@@ -1,0 +1,35 @@
+{
+  "name": "@lifeos/rules",
+  "version": "1.0.0",
+  "description": "Business logic rules: XP, Levels, Life Score, SM-2, Achievements",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@lifeos/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^1.0.0"
+  }
+}

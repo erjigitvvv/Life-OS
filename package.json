@@ -1,0 +1,36 @@
+{
+  "name": "lifeos",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "start": "turbo start",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:e2e": "playwright test",
+    "clean": "turbo clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "db:generate": "supabase gen types typescript --local > packages/db-types/index.ts",
+    "db:reset": "supabase db reset",
+    "db:migrate": "supabase db push",
+    "db:seed": "supabase db seed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^22.5.4",
+    "prettier": "^3.3.3",
+    "turbo": "^2.1.1",
+    "typescript": "^5.6.2"
+  },
+  "packageManager": "pnpm@9.10.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
