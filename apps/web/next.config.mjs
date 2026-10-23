@@ -1,6 +1,11 @@
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  transpilePackages: ['@lifeos/shared', '@lifeos/rules'],
   images: {
     remotePatterns: [
       {
@@ -18,4 +23,4 @@ const config = {
   },
 };
 
-export default config;
+export default withNextIntl(config);

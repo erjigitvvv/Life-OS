@@ -1,6 +1,15 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
 /**
  * Utility functions for formatting and calculations
  */
+
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+
+export { clsx };
 
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
@@ -57,14 +66,8 @@ export function getDaysSince(date: Date | string): number {
 }
 
 export function formatCurrency(amount: number, currency: string = 'UZS'): string {
-  return new Intl.NumberFormat('uz-UZ', {
-    style: 'currency',
-    currency,
-  }).format(amount);
-}
-
-export function clsx(...classes: (string | boolean | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
+  const parts = Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `${parts} ${currency === 'UZS' ? "so'm" : currency}`;
 }
 
 export function truncate(str: string, length: number = 50): string {

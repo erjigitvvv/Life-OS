@@ -3,136 +3,118 @@
 @tailwind utilities;
 
 :root {
-  --background: 210 40% 96%;
-  --foreground: 222 84% 5%;
+  --background: 0 0% 100%; /* Pure white minimalist background */
+  --foreground: 222 47% 11%; /* Slate 900 */
 
-  --card: 0 0% 100%;
-  --card-foreground: 222 84% 5%;
+  --card: 0 0% 100%; /* Pure white */
+  --card-foreground: 222 47% 11%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 84% 5%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary: 262 80% 50%;
+  --primary: 221 83% 53%; /* Crisp modern sapphire #2563eb */
   --primary-foreground: 210 40% 98%;
 
-  --secondary: 217 33% 53%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%; /* Slate 100 */
+  --secondary-foreground: 222 47% 11.2%;
 
-  --muted: 210 11% 71%;
-  --muted-foreground: 215 14% 34%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%; /* Slate 500 */
 
-  --accent: 47 100% 50%;
-  --accent-foreground: 26 83% 5%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222 47% 11.2%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 262 80% 50%;
+  --border: 214.3 31.8% 91.4%; /* Slate 200 #e2e8f0 */
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221 83% 53%;
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
   --font-inter: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   --font-jetbrains-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 222 84% 5%;
-    --foreground: 210 40% 96%;
+.dark {
+  --background: 222 47% 7%; /* Dark slate */
+  --foreground: 210 40% 98%;
 
-    --card: 222 84% 10%;
-    --card-foreground: 210 40% 96%;
+  --card: 222 47% 10%;
+  --card-foreground: 210 40% 98%;
 
-    --popover: 222 84% 10%;
-    --popover-foreground: 210 40% 96%;
+  --popover: 222 47% 10%;
+  --popover-foreground: 210 40% 98%;
 
-    --primary: 262 80% 50%;
-    --primary-foreground: 222 84% 5%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
 
-    --secondary: 217 33% 53%;
-    --secondary-foreground: 222 84% 5%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
 
-    --muted: 215 17% 35%;
-    --muted-foreground: 217 13% 76%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
 
-    --accent: 47 100% 50%;
-    --accent-foreground: 26 83% 5%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 262 80% 50%;
-  }
+  --border: 217 33% 20%;
+  --input: 217 33% 20%;
+  --ring: 217 91% 60%;
 }
 
+/* Authentic macOS System Cursors */
 * {
   @apply border-border;
+  cursor: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.5 3.5L18.5 16.5L12.5 17L10.5 22L7.5 21L9.5 16L5.5 16V3.5Z' fill='black' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E"), default;
+}
+
+a, button, [role="button"], input[type="checkbox"], input[type="radio"], select, .cursor-pointer {
+  cursor: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8.5 3C8.5 2.17 9.17 1.5 10 1.5C10.83 1.5 11.5 2.17 11.5 3V9.5H12C12.83 9.5 13.5 10.17 13.5 11V11.5H14C14.83 11.5 15.5 12.17 15.5 13V14H16C16.83 14 17.5 14.67 17.5 15.5V17C17.5 20.31 14.81 23 11.5 23H10C7.24 23 5 20.76 5 18V13.5C5 12.67 5.67 12 6.5 12C6.9 12 7.26 12.16 7.54 12.41L8.5 13.38V3Z' fill='black' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 6 1, pointer !important;
+}
+
+input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, [contenteditable="true"] {
+  cursor: text !important;
 }
 
 body {
-  @apply bg-background text-foreground;
+  @apply bg-background text-foreground font-sans antialiased;
 }
 
 @layer utilities {
+  /* Minimalist Pure White & Soft Elevation Utilities */
+  .card-clean {
+    @apply bg-white dark:bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-xl;
+  }
+
+  .btn-clean {
+    @apply bg-white dark:bg-card border border-border shadow-sm hover:shadow-md hover:border-primary/50 active:scale-[0.98] transition-all duration-150 rounded-xl font-medium;
+  }
+
+  /* Seamless backward compatibility for existing pages transitioning from neomorphism to pure white minimalism */
+  .neo-raised {
+    @apply bg-white dark:bg-card border border-border/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-xl;
+  }
+
+  .neo-pressed {
+    @apply bg-slate-50 dark:bg-slate-900/60 border border-border/80 rounded-xl transition-all;
+  }
+
+  .neo-button {
+    @apply bg-white dark:bg-card border border-border/80 shadow-sm hover:shadow-md hover:border-primary/40 active:scale-[0.98] transition-all duration-150 rounded-xl font-medium;
+  }
+
+  .neo-input {
+    @apply bg-white dark:bg-slate-900 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all;
+  }
+
   .glass {
-    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-lg;
-  }
-
-  .glass-dark {
-    @apply bg-black/20 backdrop-blur-md border border-white/10 rounded-lg;
-  }
-
-  .gradient-primary {
-    @apply bg-gradient-to-r from-primary via-purple-500 to-pink-500;
-  }
-
-  .gradient-accent {
-    @apply bg-gradient-to-r from-accent via-yellow-400 to-orange-400;
-  }
-
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
-  }
-
-  .card-bordered {
-    @apply rounded-lg border border-border bg-card p-6 shadow-sm;
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90;
-  }
-
-  .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-border bg-secondary px-4 py-2 font-medium text-secondary-foreground transition-colors hover:bg-secondary/90;
-  }
-
-  .input-field {
-    @apply rounded-lg border border-input bg-input px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring;
-  }
-
-  .badge {
-    @apply inline-flex items-center rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-secondary;
-  }
-
-  .flex-center {
-    @apply flex items-center justify-center;
-  }
-
-  .flex-between {
-    @apply flex items-center justify-between;
-  }
-
-  .container-main {
-    @apply mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8;
-  }
-
-  .scroll-smooth {
-    @apply scroll-smooth;
+    @apply bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border/60 rounded-xl;
   }
 
   .transition-smooth {

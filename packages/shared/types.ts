@@ -33,18 +33,51 @@ export type GoalStatus = 'active' | 'completed' | 'paused' | 'abandoned';
  */
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
-export type XPAction = keyof typeof import('@lifeos/rules').XP_REWARDS;
+export type XPAction =
+  | 'task_complete_low'
+  | 'task_complete_medium'
+  | 'task_complete_high'
+  | 'task_complete_urgent'
+  | 'task_created'
+  | 'task_cancelled'
+  | 'habit_done'
+  | 'habit_missed'
+  | 'habit_streak_7'
+  | 'habit_streak_14'
+  | 'habit_streak_30'
+  | 'habit_streak_60'
+  | 'habit_streak_90'
+  | 'study_session_15min'
+  | 'study_session_30min'
+  | 'study_session_60min'
+  | 'study_session_120min'
+  | 'flashcard_review'
+  | 'soc_day_complete'
+  | 'ielts_task_complete'
+  | 'pomodoro_complete'
+  | 'time_block_done'
+  | 'time_log_manual'
+  | 'budget_under'
+  | 'savings_contribution'
+  | 'debt_payment'
+  | 'weekly_review_done'
+  | 'goal_complete'
+  | 'kaizen_completed'
+  | 'life_score_90_plus'
+  | 'life_score_perfect';
 
 /**
  * Result pattern (success/error)
  */
-export interface Result<T> {
-  ok: true;
-  data: T;
-} | {
-  ok: false;
-  error: string;
-}
+export type Result<T> =
+  | {
+      ok: true;
+      data: T;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
 /**
  * API Response wrapper
@@ -225,9 +258,9 @@ export interface FieldError {
 /**
  * Form errors
  */
-export interface FormErrors<T> {
+export type FormErrors<T> = {
   [K in keyof T]?: FieldError;
-}
+};
 
 /**
  * Response from mutation
@@ -387,9 +420,9 @@ export type RecordString<T> = {
 /**
  * Partial with defaults
  */
-export interface PartialWithDefaults<T> {
+export type PartialWithDefaults<T> = {
   [K in keyof T]?: T[K];
-}
+};
 
 /**
  * Deep partial
@@ -409,8 +442,10 @@ export type DeepRequired<T> = {
  * Union to intersection
  */
 export type UnionToIntersection<U> = (
-  U extends (infer R) ? (r: R) => void : never
-) => (r: U) => void;
+  U extends any ? (k: U) => void : never
+) extends (k: infer I) => void
+  ? I
+  : never;
 
 /**
  * Without type (exclude keys)
@@ -442,9 +477,9 @@ export type Merge<T, U> = Omit<T, keyof U> & U;
 /**
  * Invert object keys
  */
-export type InvertObject<T> = {
-  [K in T as T[K]]: K;
-}[keyof T];
+export type InvertObject<T extends Record<PropertyKey, PropertyKey>> = {
+  [K in keyof T as T[K]]: K;
+};
 
 /**
  * String union of values
@@ -545,8 +580,8 @@ export function deepClone<T>(value: T): T {
 
   if (typeof value === 'object') {
     const result: Record<string, unknown> = {};
-    for (const key of Object.keys(value)) {
-      result[key as keyof T] = deepClone((value as Record<string, unknown>)[key]);
+    for (const key of Object.keys(value as object)) {
+      result[key] = deepClone((value as Record<string, unknown>)[key]);
     }
     return result as unknown as T;
   }
@@ -557,7 +592,7 @@ export function deepClone<T>(value: T): T {
 /**
  * Format date consistently
  */
-export function formatDate(date: Date | string | DateObject): string {
+export function formatDate(date: Date | string): string {
   if (!(date instanceof Date)) date = new Date(date);
   return date.toISOString().split('T')[0];
 }
@@ -631,7 +666,7 @@ export function throttle<T extends (...args: any[]) => any>(
   limit: number
 ): (...args: Parameters<T>) => ReturnType<T> {
   let inThrottle = false;
-  return function (this: ThisParameter<T>, ...args: Parameters<T>) {
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
@@ -648,9 +683,9 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number,
   immediate?: boolean
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
 
-  return function (this: ThisParameter<T>, ...args: Parameters<T>) {
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     const context = this;
     const argsList = args;
     const later = function () {
@@ -659,7 +694,7 @@ export function debounce<T extends (...args: any[]) => any>(
     };
 
     const callNow = immediate && !timeout;
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
     timeout = setTimeout(later, wait);
 
     if (callNow) func.apply(context, argsList);

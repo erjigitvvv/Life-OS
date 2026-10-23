@@ -20,8 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@lifeos/shared": ["../packages/shared/src"],
-      "@lifeos/rules": ["../packages/rules/src"]
+      "@lifeos/shared": ["../../packages/shared/src"],
+      "@lifeos/rules": ["../../packages/rules/src"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

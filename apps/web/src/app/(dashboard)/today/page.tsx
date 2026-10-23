@@ -92,7 +92,7 @@ export default function TodayPage() {
                 { name: 'Meditation', done: false },
               ].map((habit, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg border border-border p-2">
-                  <input type="checkbox" checked={habit.done} className="h-4 w-4 rounded" />
+                  <input type="checkbox" checked={habit.done} readOnly className="h-4 w-4 rounded" />
                   <span className={habit.done ? 'line-through text-muted-foreground' : ''}>{habit.name}</span>
                 </div>
               ))}
