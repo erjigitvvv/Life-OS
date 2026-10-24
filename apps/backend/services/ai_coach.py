@@ -37,11 +37,11 @@ Provide personalized, encouraging, and actionable coaching in Uzbek or English.
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": prompt},
-                    {"role": "user", "content": userMessage}
+                    {"role": "user", "content": user_message}
                 ],
                 temperature=0.7,
                 max_tokens=400
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"Hello! I'm your LifeOS AI Coach. (OpenAI API note: {str(e)})"
+            return f"Hello! I'm your LifeOS AI Coach. (API note: {str(e)})"

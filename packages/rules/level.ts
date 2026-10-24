@@ -2,7 +2,7 @@
  * Level System
  *
  * XP → Level conversion
- * Formula: XP = 100 * level * (level - 1)
+ * Formula: XP = (100 * level * (level - 1)) / 2
  *
  * Level 1: 0-99 XP
  * Level 2: 100-299 XP
@@ -10,9 +10,9 @@
  * Level 4: 600-999 XP
  * Level 5: 1000-1499 XP
  * ...
- * Level 10: 9000-10999 XP
- * Level 20: 38000-41999 XP
- * Level 50: 245000-249999 XP
+ * Level 10: 4500-5499 XP
+ * Level 20: 19000-20999 XP
+ * Level 50: 122500-127499 XP
  */
 
 /**
@@ -21,11 +21,10 @@
 export function calculateLevel(xp: number): number {
   if (xp < 0) return 1;
 
-  // Solve: XP = 100 * L * (L - 1)
-  // XP = 100L² - 100L
-  // 100L² - 100L - XP = 0
-  // L = (100 + sqrt(10000 + 400*XP)) / 200
-  // Simplified: L = (1 + sqrt(1 + 8*XP/100)) / 2
+  // Solve: XP = (100 * L * (L - 1)) / 2
+  // 2 * XP = 100L² - 100L
+  // L² - L - (2 * XP / 100) = 0
+  // L = (1 + sqrt(1 + 8 * XP / 100)) / 2
 
   const level = Math.floor((1 + Math.sqrt(1 + (8 * xp) / 100)) / 2);
   return Math.max(1, level);
@@ -36,7 +35,7 @@ export function calculateLevel(xp: number): number {
  */
 export function xpForLevel(level: number): number {
   if (level <= 1) return 0;
-  return 100 * level * (level - 1);
+  return (100 * level * (level - 1)) / 2;
 }
 
 /**
@@ -70,7 +69,7 @@ export function getLevelInfo(currentXP: number) {
   const level = calculateLevel(currentXP);
   const currentLevelXP = xpForLevel(level);
   const nextLevelXP = xpForLevel(level + 1);
-  const xpNeeded = nextLevelXP - currentXP;
+  const xpNeeded = xpForNextLevel(currentXP);
   const progress = levelProgress(currentXP);
 
   return {
@@ -84,46 +83,30 @@ export function getLevelInfo(currentXP: number) {
 }
 
 /**
- * Get level tier name
+ * Level tiers and badges
  */
-export function getLevelTier(level: number): string {
-  if (level >= 50) return 'Legendary';
-  if (level >= 40) return 'Master';
-  if (level >= 30) return 'Expert';
-  if (level >= 20) return 'Advanced';
-  if (level >= 10) return 'Intermediate';
-  if (level >= 5) return 'Beginner';
-  return 'Novice';
+export const LEVEL_TIERS = [
+  { minLevel: 1, maxLevel: 4, name: 'Novice', badge: '🌱', color: '#94a3b8' },
+  { minLevel: 5, maxLevel: 9, name: 'Beginner', badge: '🌿', color: '#10b981' },
+  { minLevel: 10, maxLevel: 19, name: 'Intermediate', badge: '🌳', color: '#06b6d4' },
+  { minLevel: 20, maxLevel: 29, name: 'Advanced', badge: '⚡', color: '#8b5cf6' },
+  { minLevel: 30, maxLevel: 39, name: 'Expert', badge: '🔥', color: '#f59e0b' },
+  { minLevel: 40, maxLevel: 49, name: 'Master', badge: '💎', color: '#ec4899' },
+  { minLevel: 50, maxLevel: Infinity, name: 'Legendary', badge: '👑', color: '#fbbf24' },
+] as const;
+
+/**
+ * Get level tier info
+ */
+export function getLevelTier(level: number) {
+  const tier = LEVEL_TIERS.find(t => level >= t.minLevel && level <= t.maxLevel);
+  return tier ? tier.name : LEVEL_TIERS[0].name;
 }
 
 /**
  * Get level color
  */
 export function getLevelColor(level: number): string {
-  if (level >= 50) return '#fbbf24'; // gold
-  if (level >= 40) return '#a855f7'; // purple
-  if (level >= 30) return '#3b82f6'; // blue
-  if (level >= 20) return '#10b981'; // green
-  if (level >= 10) return '#06b6d4'; // cyan
-  return '#94a3b8'; // gray
-}
-
-/**
- * Calculate XP table (for reference)
- */
-export function generateXPTable(maxLevel: number = 50) {
-  const table = [];
-  for (let level = 1; level <= maxLevel; level++) {
-    const xpStart = xpForLevel(level);
-    const xpEnd = xpForLevel(level + 1) - 1;
-    table.push({
-      level,
-      xpRange: `${xpStart}-${xpEnd}`,
-      xpStart,
-      xpEnd,
-      tier: getLevelTier(level),
-      color: getLevelColor(level),
-    });
-  }
-  return table;
+  const tier = LEVEL_TIERS.find(t => level >= t.minLevel && level <= t.maxLevel);
+  return tier ? tier.color : LEVEL_TIERS[0].color;
 }
