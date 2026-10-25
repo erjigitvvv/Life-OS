@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useLifeOS, Transaction, Budget, SavingsGoal } from '@/lib/store';
+import { CardStack3D } from '@/components/finance/CardStack3D';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -38,6 +39,7 @@ export default function FinancePage() {
     budgets,
     savings,
     emergencyFund,
+    cards,
     addTransaction,
     deleteTransaction,
     addBudget,
@@ -46,6 +48,9 @@ export default function FinancePage() {
     addSavingsGoal,
     depositEmergencyFund,
     autoAllocate503020,
+    addCard,
+    updateCardBalance,
+    deleteCard,
   } = useLifeOS();
 
   // Modals state
@@ -230,6 +235,14 @@ export default function FinancePage() {
           </button>
         </div>
       </div>
+
+      {/* 3D Interactive Apple-Style Card Stack & Live Combined Balance */}
+      <CardStack3D
+        cards={cards || []}
+        onAddCard={addCard}
+        onUpdateCardBalance={updateCardBalance}
+        onDeleteCard={deleteCard}
+      />
 
       {/* Overview KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

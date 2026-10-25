@@ -137,6 +137,23 @@ export interface EmergencyFund {
   monthlyAllocation: number;
 }
 
+export type CardType = 'uzcard' | 'humo' | 'visa' | 'mastercard' | 'cash';
+
+export interface WalletCard {
+  id: string;
+  name: string;
+  type: CardType;
+  balance: number;
+  currency: 'UZS' | 'USD';
+  cardNumber?: string;
+  holderName?: string;
+  expiryDate?: string;
+  bankName?: string;
+  colorTheme: string;
+  gradient: string;
+  isDefault?: boolean;
+}
+
 export interface KaizenEntry {
   id: string;
   date: string;
@@ -209,6 +226,7 @@ export interface DatabaseState {
   studyResources: StudyResource[];
   roadmaps: LearningRoadmap[];
   emergencyFund: EmergencyFund;
+  cards: WalletCard[];
   kaizenEntries: KaizenEntry[];
   goals: Goal[];
   healthLogs: Record<string, HealthLog>;
@@ -748,6 +766,74 @@ export const INITIAL_DATABASE: DatabaseState = {
     targetAmount: 50000000,
     monthlyAllocation: 1500000,
   },
+  cards: [
+    {
+      id: 'card-uzcard-1',
+      name: 'Kapitalbank Uzcard',
+      type: 'uzcard',
+      balance: 8450000,
+      currency: 'UZS',
+      cardNumber: '8600 •••• •••• 3418',
+      holderName: 'MIRHAMID ERJIGITOV',
+      expiryDate: '11/28',
+      bankName: 'Kapitalbank',
+      colorTheme: 'emerald-cyan',
+      gradient: 'from-[#004d40] via-[#00695c] to-[#00897b]',
+      isDefault: true,
+    },
+    {
+      id: 'card-humo-1',
+      name: 'TBC Bank Humo',
+      type: 'humo',
+      balance: 5200000,
+      currency: 'UZS',
+      cardNumber: '9860 •••• •••• 7729',
+      holderName: 'MIRHAMID ERJIGITOV',
+      expiryDate: '04/29',
+      bankName: 'TBC Bank',
+      colorTheme: 'orange-terracotta',
+      gradient: 'from-[#b73e00] via-[#bf360c] to-[#1e1b4b]',
+    },
+    {
+      id: 'card-visa-1',
+      name: 'Visa Platinum Infinite',
+      type: 'visa',
+      balance: 12800000,
+      currency: 'UZS',
+      cardNumber: '4000 •••• •••• 9104',
+      holderName: 'MIRHAMID ERJIGITOV',
+      expiryDate: '09/30',
+      bankName: 'Ipak Yo\'li Bank',
+      colorTheme: 'midnight-gold',
+      gradient: 'from-[#090d16] via-[#111827] to-[#1e293b]',
+    },
+    {
+      id: 'card-mc-1',
+      name: 'Mastercard World Elite',
+      type: 'mastercard',
+      balance: 6150000,
+      currency: 'UZS',
+      cardNumber: '5412 •••• •••• 6502',
+      holderName: 'MIRHAMID ERJIGITOV',
+      expiryDate: '12/29',
+      bankName: 'NBU Private',
+      colorTheme: 'space-crimson',
+      gradient: 'from-[#1a0b2e] via-[#2d123d] to-[#4c0519]',
+    },
+    {
+      id: 'card-cash-1',
+      name: 'Naqd Pul (Hamyon)',
+      type: 'cash',
+      balance: 3400000,
+      currency: 'UZS',
+      cardNumber: 'CASH-WALLET',
+      holderName: 'NAQD MABLAGʻ',
+      expiryDate: 'DOIMIY',
+      bankName: 'Naqd Pul Zaxirasi',
+      colorTheme: 'obsidian-forest',
+      gradient: 'from-[#052417] via-[#064e3b] to-[#022c22]',
+    },
+  ],
   kaizenEntries: [
     {
       id: 'k-1',
@@ -876,6 +962,7 @@ class StoreEngine {
             ...parsed,
             roadmaps: parsed.roadmaps?.length ? parsed.roadmaps : INITIAL_DATABASE.roadmaps,
             emergencyFund: parsed.emergencyFund || INITIAL_DATABASE.emergencyFund,
+            cards: parsed.cards?.length ? parsed.cards : INITIAL_DATABASE.cards,
           };
         } else {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATABASE));
@@ -1168,6 +1255,41 @@ class StoreEngine {
     this.state = {
       ...this.state,
       savings: [...this.state.savings, newGoal],
+    };
+    this.notify();
+  }
+
+  // --- Cards & Wallets CRUD ---
+  public addCard(card: Omit<WalletCard, 'id'>) {
+    const newCard: WalletCard = {
+      ...card,
+      id: `card-${Date.now()}`,
+    };
+    this.state = {
+      ...this.state,
+      cards: [...(this.state.cards || []), newCard],
+      user: {
+        ...this.state.user,
+        xp: this.state.user.xp + 25,
+      },
+    };
+    this.notify();
+  }
+
+  public updateCardBalance(cardId: string, newBalance: number) {
+    this.state = {
+      ...this.state,
+      cards: (this.state.cards || []).map((c) =>
+        c.id === cardId ? { ...c, balance: Math.max(0, newBalance) } : c
+      ),
+    };
+    this.notify();
+  }
+
+  public deleteCard(cardId: string) {
+    this.state = {
+      ...this.state,
+      cards: (this.state.cards || []).filter((c) => c.id !== cardId),
     };
     this.notify();
   }
@@ -1619,6 +1741,9 @@ export function useLifeOS() {
     updateBudget: (id: string, updates: Partial<Budget>) => store.updateBudget(id, updates),
     depositSavings: (id: string, amount: number) => store.depositSavings(id, amount),
     addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) => store.addSavingsGoal(goal),
+    addCard: (card: Omit<WalletCard, 'id'>) => store.addCard(card),
+    updateCardBalance: (cardId: string, newBalance: number) => store.updateCardBalance(cardId, newBalance),
+    deleteCard: (cardId: string) => store.deleteCard(cardId),
     depositEmergencyFund: (amount: number) => store.depositEmergencyFund(amount),
     updateEmergencyFund: (updates: Partial<EmergencyFund>) => store.updateEmergencyFund(updates),
     autoAllocate503020: (amount: number, description?: string) => store.autoAllocate503020(amount, description),

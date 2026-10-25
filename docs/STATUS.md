@@ -36,6 +36,11 @@
    - `apps/backend/services/ai_coach.py` dagi `NameError: userMessage` xatosi `user_message` ga to'g'rilandi.
 4. **GitHub Actions CI qo'shildi**:
    - `.github/workflows/ci.yml` orqali `typecheck`, `lint`, `vitest` va `pytest` avtomatlashtirildi.
+5. **Finance 3D Apple-Style Card Stack & Milliy/Xalqaro Kartalar**:
+   - 3D stack tuzilmasi: kartalar ustma-ust 3D perspektivada joylashgan, orqa kartalarning qirralari ko'rinib turadi.
+   - Milliy va xalqaro kartalar: Uzcard (Kapitalbank, milliy zumrad-ko'k), Humo (TBC Bank, yorqin to'q sariq), Visa Platinum (midnight obsidian & gold), Mastercard World Elite (kosmik binafsha & qizil/sariq doiralar), Naqd Hamyon (qog'oz pul ikonkasi va maxsus zaxira).
+   - Jonli umumiy balans: barcha kartalar va naqd pul yig'indisi stack tepasida real vaqtda aks etadi.
+   - Apple spring physics: `framer-motion` orqali silliq sakrash (bounce), yoyish (fan-out) va har bir bosishda fizik animatsiyalar.
 
 ---
 
