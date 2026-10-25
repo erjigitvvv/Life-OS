@@ -5,6 +5,12 @@ import { useState, useEffect } from 'react';
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -17,6 +23,9 @@ export interface Task {
   dueDate?: string;
   createdAt: string;
   completedAt?: string;
+  estimatedTime?: string;      // "2h 30m", "45m", etc.
+  subtasks?: SubTask[];        // Subtasks array
+  actualTime?: number;         // Logged minutes
 }
 
 export interface Habit {
@@ -207,6 +216,12 @@ export const INITIAL_DATABASE: DatabaseState = {
       tags: ['Arxitektura', 'Web', 'Refactor'],
       dueDate: todayStr,
       createdAt: yesterdayStr,
+      estimatedTime: '4h',
+      subtasks: [
+        { id: 'st-1', title: 'Turborepo config yangilash', completed: true },
+        { id: 'st-2', title: 'Type-safe shared packages', completed: false },
+        { id: 'st-3', title: 'CI/CD pipeline sozlash', completed: false },
+      ],
     },
     {
       id: 'task-2',
@@ -219,6 +234,12 @@ export const INITIAL_DATABASE: DatabaseState = {
       tags: ['Frontend', 'UI'],
       dueDate: todayStr,
       createdAt: yesterdayStr,
+      estimatedTime: '3h',
+      subtasks: [
+        { id: 'st-4', title: 'Framer Motion animatsiya', completed: false },
+        { id: 'st-5', title: 'Subtasks UI', completed: true },
+        { id: 'st-6', title: 'Overdue qizil rang', completed: false },
+      ],
     },
     {
       id: 'task-3',
@@ -231,6 +252,11 @@ export const INITIAL_DATABASE: DatabaseState = {
       tags: ['Study', 'SM2'],
       dueDate: getOffsetDateIso(1),
       createdAt: todayStr,
+      estimatedTime: '2h',
+      subtasks: [
+        { id: 'st-7', title: 'SM-2 formula testlari', completed: false },
+        { id: 'st-8', title: 'Flashcard UI yangilash', completed: false },
+      ],
     },
     {
       id: 'task-4',
@@ -243,6 +269,11 @@ export const INITIAL_DATABASE: DatabaseState = {
       tags: ['Moliya'],
       dueDate: getOffsetDateIso(2),
       createdAt: todayStr,
+      estimatedTime: '1h 30m',
+      subtasks: [
+        { id: 'st-9', title: 'Transport limit tahlili', completed: true },
+        { id: 'st-10', title: 'Oziq-ovqat limit tahlili', completed: false },
+      ],
     },
     {
       id: 'task-5',
@@ -256,6 +287,12 @@ export const INITIAL_DATABASE: DatabaseState = {
       dueDate: yesterdayStr,
       createdAt: day3AgoStr,
       completedAt: yesterdayStr,
+      estimatedTime: '2h',
+      subtasks: [
+        { id: 'st-11', title: 'Jadval strukturasi', completed: true },
+        { id: 'st-12', title: 'Inline edit', completed: true },
+        { id: 'st-13', title: 'Boolean toggle', completed: true },
+      ],
     },
     {
       id: 'task-6',
@@ -268,6 +305,12 @@ export const INITIAL_DATABASE: DatabaseState = {
       tags: ['Xavfsizlik', 'Kurs'],
       dueDate: getOffsetDateIso(5),
       createdAt: dayBeforeYesterdayStr,
+      estimatedTime: '3h',
+      subtasks: [
+        { id: 'st-14', title: 'Modul 1: Network basics', completed: false },
+        { id: 'st-15', title: 'Modul 2: Traffic analysis', completed: false },
+        { id: 'st-16', title: 'Modul 3: Wireshark labs', completed: false },
+      ],
     },
   ],
   habits: [
