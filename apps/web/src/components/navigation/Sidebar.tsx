@@ -30,6 +30,7 @@ import {
   Layers,
   Folder,
   FolderOpen,
+  GraduationCap,
 } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import { ThemeToggle } from '../ThemeToggle';
@@ -51,7 +52,7 @@ export function Sidebar({ locale }: SidebarProps) {
   const [isTrackersOpen, setIsTrackersOpen] = useState(true);
   const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
 
-  const { user, habits, tasks, trackers, toggleTrackBoolean } = useLifeOS();
+  const { user, habits, tasks, trackers, toggleTrackBoolean, roadmaps } = useLifeOS();
 
   const todayIso = new Date().toISOString().split('T')[0];
 
@@ -129,6 +130,17 @@ export function Sidebar({ locale }: SidebarProps) {
             { name: 'Eslatmalar Rejimi', href: `/${locale}/habits#reminders` },
           ],
         },
+        {
+          name: t('study'),
+          href: `/${locale}/study`,
+          icon: GraduationCap,
+          badge: roadmaps?.length ? roadmaps.length.toString() : undefined,
+          submenus: [
+            { name: 'Learning Roadmap', href: `/${locale}/study?tab=roadmap` },
+            { name: t('activeRecall'), href: `/${locale}/study?tab=flashcards` },
+            { name: t('resourceLibrary'), href: `/${locale}/study?tab=resources` },
+          ],
+        },
       ],
     },
     {
@@ -143,6 +155,7 @@ export function Sidebar({ locale }: SidebarProps) {
             { name: t('transactions'), href: `/${locale}/finance?tab=transactions` },
             { name: t('budgets'), href: `/${locale}/finance?tab=budgets` },
             { name: t('savings'), href: `/${locale}/finance?tab=savings` },
+            { name: '50/30/20 Qoidasi', href: `/${locale}/finance?tab=rule503020` },
           ],
         },
       ],

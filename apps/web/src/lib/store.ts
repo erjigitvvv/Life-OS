@@ -102,6 +102,41 @@ export interface StudyResource {
   progress: number;
 }
 
+export type SkillStatus = 'not_started' | 'in_progress' | 'completed';
+
+export interface LearningTopic {
+  id: string;
+  title: string;
+  description?: string;
+  status: SkillStatus;
+  duration?: string;
+  completedAt?: string;
+  resourceLink?: string;
+}
+
+export interface RoadmapStage {
+  id: string;
+  title: string;
+  description?: string;
+  topics: LearningTopic[];
+}
+
+export interface LearningRoadmap {
+  id: string;
+  title: string;
+  category: 'cybersecurity' | 'ielts' | 'programming' | 'other';
+  icon: string;
+  color: string;
+  description: string;
+  stages: RoadmapStage[];
+}
+
+export interface EmergencyFund {
+  currentAmount: number;
+  targetAmount: number;
+  monthlyAllocation: number;
+}
+
 export interface KaizenEntry {
   id: string;
   date: string;
@@ -172,6 +207,8 @@ export interface DatabaseState {
   savings: SavingsGoal[];
   studyCards: StudyCard[];
   studyResources: StudyResource[];
+  roadmaps: LearningRoadmap[];
+  emergencyFund: EmergencyFund;
   kaizenEntries: KaizenEntry[];
   goals: Goal[];
   healthLogs: Record<string, HealthLog>;
@@ -596,6 +633,121 @@ export const INITIAL_DATABASE: DatabaseState = {
       progress: 100,
     },
   ],
+  roadmaps: [
+    {
+      id: 'roadmap-cybersecurity',
+      title: 'Kiberxavfsizlik (SOC Analyst Level 1 & 2)',
+      category: 'cybersecurity',
+      icon: 'Shield',
+      color: '#10b981',
+      description: 'Tarmoq xavfsizligi, SIEM monitoring, threat hunting va incident response bo\'yicha bosqichma-bosqich amaliy xarita.',
+      stages: [
+        {
+          id: 'stage-sec-1',
+          title: '1-Bosqich: Tarmoq va Operatsion Tizimlar Xavfsizligi',
+          description: 'TCP/IP protokollari, Linux & Windows audit, va Wireshark lablari',
+          topics: [
+            { id: 'sec-101', title: 'TCP/IP, OSI modeli va Wireshark packet tahlili', status: 'completed', duration: '6 soat', completedAt: '2026-10-18' },
+            { id: 'sec-102', title: 'Linux Bash, xavfsizlik audit buyruqlari va log fayllar', status: 'completed', duration: '5 soat', completedAt: '2026-10-20' },
+            { id: 'sec-103', title: 'Windows Event Viewer va Sysinternals (Sysmon) arxitekturasi', status: 'completed', duration: '7 soat', completedAt: '2026-10-22' },
+            { id: 'sec-104', title: 'DNS, DHCP, ARP Spoofing va Man-in-the-Middle hujumlari tahlili', status: 'in_progress', duration: '4 soat' },
+          ],
+        },
+        {
+          id: 'stage-sec-2',
+          title: '2-Bosqich: Xavfsizlik Arxitekturasi va Defensiya',
+          description: 'Firewall, IDS/IPS, Active Directory va Endpoint himoyasi',
+          topics: [
+            { id: 'sec-201', title: 'Firewall (pfSense/iptables) va Snort / Suricata IDS qoidalari', status: 'completed', duration: '6 soat', completedAt: '2026-10-24' },
+            { id: 'sec-202', title: 'Active Directory hujumlari (Kerberoasting, Pass-the-Hash) va audit', status: 'in_progress', duration: '8 soat' },
+            { id: 'sec-203', title: 'EDR/XDR sensorlari va Zero Trust Identity boshqaruvi', status: 'not_started', duration: '5 soat' },
+            { id: 'sec-204', title: 'WAF (Web Application Firewall) va OWASP Top 10 tahlili', status: 'not_started', duration: '6 soat' },
+          ],
+        },
+        {
+          id: 'stage-sec-3',
+          title: '3-Bosqich: SIEM, Log Korrelyatsiyasi va Threat Hunting',
+          description: 'Splunk, Elastic SIEM va MITRE ATT&CK integratsiyasi',
+          topics: [
+            { id: 'sec-301', title: 'Splunk SPL (Search Processing Language) bilan xavfsizlik so\'rovlari', status: 'in_progress', duration: '8 soat' },
+            { id: 'sec-302', title: 'MITRE ATT&CK matritsasi: Tactic & Technique mapping', status: 'completed', duration: '4 soat', completedAt: '2026-10-23' },
+            { id: 'sec-303', title: 'Sigma Rules va YARA qoidalarini yaratish hamda testlash', status: 'not_started', duration: '6 soat' },
+            { id: 'sec-304', title: 'Threat Intelligence (MISP, AlienVault OTX) va IOC tahlili', status: 'not_started', duration: '5 soat' },
+          ],
+        },
+        {
+          id: 'stage-sec-4',
+          title: '4-Bosqich: Incident Response va Raqamli Kriminalistika',
+          description: 'Memory Forensics, Disk tahlili va hodisani lokalizatsiya qilish',
+          topics: [
+            { id: 'sec-401', title: 'Xotira tahlili (Volatility 3 bilan Memory Forensics)', status: 'not_started', duration: '7 soat' },
+            { id: 'sec-402', title: 'Autopsy va FTK Imager bilan disk kriminalistikasi', status: 'not_started', duration: '6 soat' },
+            { id: 'sec-403', title: 'Ransomware va ziyonkor kodlarni tahlil qilish (Static/Dynamic)', status: 'not_started', duration: '8 soat' },
+            { id: 'sec-404', title: 'Post-Incident hisobot, RCA (Root Cause Analysis) va tavsiyalar', status: 'not_started', duration: '4 soat' },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'roadmap-ielts',
+      title: 'IELTS 7.5+ Band Masterclass',
+      category: 'ielts',
+      icon: 'BookOpen',
+      color: '#3b82f6',
+      description: 'Listening, Reading, Writing Task 1/2 va Speaking bo\'yicha 7.5+ band darajasi xaritasi.',
+      stages: [
+        {
+          id: 'stage-ielts-1',
+          title: '1-Modul: Listening Mastery (Band 8.0+)',
+          description: 'Turli aksentlar, savol turlari va Mock testlar strategiyasi',
+          topics: [
+            { id: 'ielts-101', title: 'Form & Table Completion strategiyalari va spelling xatolari', status: 'completed', duration: '3 soat', completedAt: '2026-10-15' },
+            { id: 'ielts-102', title: 'Multiple Choice & Matching savollari: Distractorlarni aniqlash', status: 'completed', duration: '4 soat', completedAt: '2026-10-17' },
+            { id: 'ielts-103', title: 'Map Labeling va Diagram Flowchart texnikalari', status: 'completed', duration: '3 soat', completedAt: '2026-10-21' },
+            { id: 'ielts-104', title: 'Section 4: Akademik leksiya va konspekt olish mashqlari', status: 'in_progress', duration: '5 soat' },
+          ],
+        },
+        {
+          id: 'stage-ielts-2',
+          title: '2-Modul: Academic Reading (Band 7.5+)',
+          description: 'Skimming, Scanning, T/F/NG va 570 Academic Word List',
+          topics: [
+            { id: 'ielts-201', title: 'Skimming va Scanning orqali kalit so\'zlarni tezkor topish', status: 'completed', duration: '4 soat', completedAt: '2026-10-19' },
+            { id: 'ielts-202', title: 'True / False / Not Given & Yes / No / Not Given farqlash usullari', status: 'completed', duration: '5 soat', completedAt: '2026-10-22' },
+            { id: 'ielts-203', title: 'Headings matching va Paragraph summary strategiyasi', status: 'in_progress', duration: '4 soat' },
+            { id: 'ielts-204', title: 'Academic Word List (AWL) 570 ta asosiy ilmiy so\'zlar tahlili', status: 'completed', duration: '6 soat', completedAt: '2026-10-24' },
+          ],
+        },
+        {
+          id: 'stage-ielts-3',
+          title: '3-Modul: Writing Task 1 & Task 2 (Band 7.0+)',
+          description: 'Grafiklar tahlili, Report yozish va Argumentative Essay tuzilmasi',
+          topics: [
+            { id: 'ielts-301', title: 'Task 1: Bar, Line, Pie, Table trendlarini ifodalash', status: 'completed', duration: '4 soat', completedAt: '2026-10-20' },
+            { id: 'ielts-302', title: 'Task 1: Process va Map diagrammalarida passive voice qo\'llash', status: 'in_progress', duration: '3 soat' },
+            { id: 'ielts-303', title: 'Task 2: Opinion va Discussion esselari uchun 4-paragraf shabloni', status: 'in_progress', duration: '6 soat' },
+            { id: 'ielts-304', title: 'Cohesion, Lexical Resource va C1/C2 darajadagi Collocations', status: 'not_started', duration: '5 soat' },
+          ],
+        },
+        {
+          id: 'stage-ielts-4',
+          title: '4-Modul: Speaking Fluency & Lexicon (Band 7.5+)',
+          description: 'Part 1, Cue Card 2 daqiqa, Part 3 abstrakt tahlil va talaffuz',
+          topics: [
+            { id: 'ielts-401', title: 'Part 1: Tezkor javoblar, intonatsiya va tabiiy bog\'lovchilar', status: 'completed', duration: '3 soat', completedAt: '2026-10-22' },
+            { id: 'ielts-402', title: 'Part 2: 1 daqiqa ichida Cue Card rejasi va 2 daqiqa to\'xtovsiz nutq', status: 'in_progress', duration: '5 soat' },
+            { id: 'ielts-403', title: 'Part 3: Ijtimoiy va falsafiy savollarga mantiqiy kengaytirilgan javob', status: 'not_started', duration: '6 soat' },
+            { id: 'ielts-404', title: 'Idiomatic language, phrasal verbs va talaffuz ravonligi (Accent)', status: 'not_started', duration: '4 soat' },
+          ],
+        },
+      ],
+    },
+  ],
+  emergencyFund: {
+    currentAmount: 34500000,
+    targetAmount: 50000000,
+    monthlyAllocation: 1500000,
+  },
   kaizenEntries: [
     {
       id: 'k-1',
@@ -719,7 +871,12 @@ class StoreEngine {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          this.state = { ...INITIAL_DATABASE, ...parsed };
+          this.state = {
+            ...INITIAL_DATABASE,
+            ...parsed,
+            roadmaps: parsed.roadmaps?.length ? parsed.roadmaps : INITIAL_DATABASE.roadmaps,
+            emergencyFund: parsed.emergencyFund || INITIAL_DATABASE.emergencyFund,
+          };
         } else {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATABASE));
         }
@@ -1015,6 +1172,103 @@ class StoreEngine {
     this.notify();
   }
 
+  // --- Emergency Fund & 50/30/20 Rule Automation ---
+  public depositEmergencyFund(amount: number) {
+    const current = this.state.emergencyFund || { currentAmount: 0, targetAmount: 50000000, monthlyAllocation: 1500000 };
+    this.state = {
+      ...this.state,
+      emergencyFund: {
+        ...current,
+        currentAmount: current.currentAmount + amount,
+      },
+      user: {
+        ...this.state.user,
+        xp: this.state.user.xp + 15,
+      },
+    };
+    this.notify();
+  }
+
+  public updateEmergencyFund(updates: Partial<EmergencyFund>) {
+    const current = this.state.emergencyFund || { currentAmount: 0, targetAmount: 50000000, monthlyAllocation: 1500000 };
+    this.state = {
+      ...this.state,
+      emergencyFund: {
+        ...current,
+        ...updates,
+      },
+    };
+    this.notify();
+  }
+
+  public autoAllocate503020(amount: number, description: string = 'Oylik daromad (50/30/20 taqsimot)') {
+    if (amount <= 0) return;
+
+    // 50% Zaruriy ehtiyojlar (Needs)
+    const needsAmount = Math.round(amount * 0.5);
+    // 30% Xohish-istaklar (Wants)
+    const wantsAmount = Math.round(amount * 0.3);
+    // 20% Jamg'arma & Zaxira (Savings & Reserve)
+    const savingsAmount = Math.round(amount * 0.2);
+
+    // 1. Add income transaction
+    const newTx: Transaction = {
+      id: `tx-${Date.now()}`,
+      description,
+      amount,
+      type: 'income',
+      category: 'Daromad',
+      date: getTodayIso(),
+    };
+
+    // 2. Distribute savings: 50% to Emergency Fund, 50% to existing savings goals
+    const emergencyPart = Math.round(savingsAmount * 0.5);
+    const savingsGoalPart = savingsAmount - emergencyPart;
+
+    const currentEmergency = this.state.emergencyFund || { currentAmount: 0, targetAmount: 50000000, monthlyAllocation: 1500000 };
+    const nextEmergency = {
+      ...currentEmergency,
+      currentAmount: currentEmergency.currentAmount + emergencyPart,
+    };
+
+    let nextSavings = [...this.state.savings];
+    if (nextSavings.length > 0) {
+      nextSavings = nextSavings.map((s, idx) => {
+        if (idx === 0) {
+          return { ...s, currentAmount: s.currentAmount + savingsGoalPart };
+        }
+        return s;
+      });
+    }
+
+    // 3. Adjust monthly budget limits proportionally for Needs and Wants
+    const nextBudgets = this.state.budgets.map((b) => {
+      const lower = b.category.toLowerCase();
+      const isNeed = ['uy-joy', 'kommunal', 'oziq-ovqat', 'transport', 'dorixona', 'salomatlik'].some((k) => lower.includes(k));
+      if (isNeed) {
+        return { ...b, limit: b.limit + Math.round(needsAmount / 2) };
+      }
+      const isWant = ['kafe', 'restoran', 'ko‘ngilochar', 'kongilochar', 'obuna', 'kiyim'].some((k) => lower.includes(k));
+      if (isWant) {
+        return { ...b, limit: b.limit + Math.round(wantsAmount / 2) };
+      }
+      return b;
+    });
+
+    this.state = {
+      ...this.state,
+      transactions: [newTx, ...this.state.transactions],
+      emergencyFund: nextEmergency,
+      savings: nextSavings,
+      budgets: nextBudgets,
+      user: {
+        ...this.state.user,
+        xp: this.state.user.xp + 40,
+      },
+    };
+    this.notify();
+  }
+
   // --- Study SM-2 Flashcards CRUD ---
   public rateCard(cardId: string, quality: number) {
     this.state = {
@@ -1091,6 +1345,89 @@ class StoreEngine {
     this.state = {
       ...this.state,
       studyResources: this.state.studyResources.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+    };
+    this.notify();
+  }
+
+  // --- Learning Roadmaps CRUD ---
+  public toggleTopicStatus(
+    roadmapId: string,
+    stageId: string,
+    topicId: string,
+    newStatus?: SkillStatus
+  ) {
+    let gainedXp = 0;
+    const nextRoadmaps = (this.state.roadmaps || []).map((rm) => {
+      if (rm.id !== roadmapId) return rm;
+      const nextStages = rm.stages.map((stage) => {
+        if (stage.id !== stageId) return stage;
+        const nextTopics = stage.topics.map((t) => {
+          if (t.id !== topicId) return t;
+          let status: SkillStatus;
+          if (newStatus) {
+            status = newStatus;
+          } else {
+            if (t.status === 'not_started') status = 'in_progress';
+            else if (t.status === 'in_progress') status = 'completed';
+            else status = 'not_started';
+          }
+          if (status === 'completed' && t.status !== 'completed') {
+            gainedXp = 20;
+          }
+          return {
+            ...t,
+            status,
+            completedAt: status === 'completed' ? getTodayIso() : undefined,
+          };
+        });
+        return { ...stage, topics: nextTopics };
+      });
+      return { ...rm, stages: nextStages };
+    });
+
+    this.state = {
+      ...this.state,
+      roadmaps: nextRoadmaps,
+      user: {
+        ...this.state.user,
+        xp: this.state.user.xp + gainedXp,
+      },
+    };
+    this.notify();
+  }
+
+  public addRoadmapTopic(roadmapId: string, stageId: string, topic: Omit<LearningTopic, 'id'>) {
+    const newTopic: LearningTopic = {
+      ...topic,
+      id: `topic-${Date.now()}`,
+    };
+    const nextRoadmaps = (this.state.roadmaps || []).map((rm) => {
+      if (rm.id !== roadmapId) return rm;
+      const nextStages = rm.stages.map((st) => {
+        if (st.id !== stageId) return st;
+        return {
+          ...st,
+          topics: [...st.topics, newTopic],
+        };
+      });
+      return { ...rm, stages: nextStages };
+    });
+
+    this.state = {
+      ...this.state,
+      roadmaps: nextRoadmaps,
+    };
+    this.notify();
+  }
+
+  public addRoadmap(roadmap: Omit<LearningRoadmap, 'id'>) {
+    const newRoadmap: LearningRoadmap = {
+      ...roadmap,
+      id: `roadmap-${Date.now()}`,
+    };
+    this.state = {
+      ...this.state,
+      roadmaps: [...(this.state.roadmaps || []), newRoadmap],
     };
     this.notify();
   }
@@ -1282,11 +1619,19 @@ export function useLifeOS() {
     updateBudget: (id: string, updates: Partial<Budget>) => store.updateBudget(id, updates),
     depositSavings: (id: string, amount: number) => store.depositSavings(id, amount),
     addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) => store.addSavingsGoal(goal),
+    depositEmergencyFund: (amount: number) => store.depositEmergencyFund(amount),
+    updateEmergencyFund: (updates: Partial<EmergencyFund>) => store.updateEmergencyFund(updates),
+    autoAllocate503020: (amount: number, description?: string) => store.autoAllocate503020(amount, description),
     rateCard: (cardId: string, quality: number) => store.rateCard(cardId, quality),
     addStudyCard: (card: Omit<StudyCard, 'id' | 'easinessFactor' | 'interval' | 'repetitions' | 'nextReviewDate'>) =>
       store.addStudyCard(card),
     addStudyResource: (res: Omit<StudyResource, 'id'>) => store.addStudyResource(res),
     updateStudyResource: (id: string, updates: Partial<StudyResource>) => store.updateStudyResource(id, updates),
+    toggleTopicStatus: (roadmapId: string, stageId: string, topicId: string, newStatus?: SkillStatus) =>
+      store.toggleTopicStatus(roadmapId, stageId, topicId, newStatus),
+    addRoadmapTopic: (roadmapId: string, stageId: string, topic: Omit<LearningTopic, 'id'>) =>
+      store.addRoadmapTopic(roadmapId, stageId, topic),
+    addRoadmap: (roadmap: Omit<LearningRoadmap, 'id'>) => store.addRoadmap(roadmap),
     addKaizenEntry: (entry: Omit<KaizenEntry, 'id' | 'date'>) => store.addKaizenEntry(entry),
     addGoal: (goal: Omit<Goal, 'id'>) => store.addGoal(goal),
     updateGoalProgress: (goalId: string, progress: number) => store.updateGoalProgress(goalId, progress),
