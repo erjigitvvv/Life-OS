@@ -36,8 +36,13 @@ export interface TrackerRow {
   id: string;
   name: string;
   icon: string;
+  category?: string;
   unit: string;
   goal: number;
+  frequency?: 'daily' | 'hourly' | 'weekly';
+  targetType?: 'daily' | 'goal_indicator';
+  isBoolean?: boolean;
+  completedDates?: string[];
   values: Record<string, number>; // date "YYYY-MM-DD" -> numeric value
 }
 
@@ -617,7 +622,7 @@ export const INITIAL_DATABASE: DatabaseState = {
   notifications: [
     {
       id: 'notif-1',
-      title: 'Streak saqlandi! 🔥',
+      title: 'Streak saqlandi!',
       message: 'Siz ketma-ket 18 kun davomida faolsiz. Baraka toping!',
       type: 'success',
       time: '10 daqiqa oldin',
@@ -633,7 +638,7 @@ export const INITIAL_DATABASE: DatabaseState = {
     },
     {
       id: 'notif-3',
-      title: 'Byudjet ogohlantirishi ⚠️',
+      title: 'Byudjet ogohlantirishi',
       message: 'Ko\'ngilochar xarajatlar oylik limitning 82% iga yetdi.',
       type: 'warning',
       time: '3 soat oldin',
@@ -836,10 +841,38 @@ class StoreEngine {
       ...tracker,
       id: `track-${Date.now()}`,
       values: {},
+      completedDates: tracker.completedDates || [],
     };
     this.state = {
       ...this.state,
       trackers: [...this.state.trackers, newTracker],
+    };
+    this.notify();
+  }
+
+  public toggleTrackBoolean(id: string, date?: string) {
+    const today = date || new Date().toISOString().split('T')[0];
+    this.state = {
+      ...this.state,
+      trackers: this.state.trackers.map((t) => {
+        if (t.id === id) {
+          const currentDates = t.completedDates || [];
+          const isDone = currentDates.includes(today);
+          const nextDates = isDone
+            ? currentDates.filter((d) => d !== today)
+            : [...currentDates, today];
+          return {
+            ...t,
+            isBoolean: true,
+            completedDates: nextDates,
+            values: {
+              ...t.values,
+              [today]: isDone ? 0 : 1,
+            },
+          };
+        }
+        return t;
+      }),
     };
     this.notify();
   }
@@ -1198,6 +1231,7 @@ export function useLifeOS() {
     deleteHabit: (id: string) => store.deleteHabit(id),
     updateTrackerCell: (id: string, date: string, value: number) => store.updateTrackerCell(id, date, value),
     addTracker: (tracker: Omit<TrackerRow, 'id' | 'values'>) => store.addTracker(tracker),
+    toggleTrackBoolean: (id: string, date?: string) => store.toggleTrackBoolean(id, date),
     deleteTracker: (id: string) => store.deleteTracker(id),
     addTransaction: (tx: Omit<Transaction, 'id'>) => store.addTransaction(tx),
     deleteTransaction: (id: string) => store.deleteTransaction(id),
