@@ -4,10 +4,13 @@
 
 ---
 
-## D-001 (2026-10-24) — AI Provayder
-- **Qaror**: Faqat **Anthropic Claude** (Claude 3.5 Sonnet / Claude 3.5 Haiku). OpenAI (GPT-4o va boshqalar) ishlatilmaydi.
-- **Sabab**: Yagona SDK (`@anthropic-ai/sdk`), yagona xavfsiz API kaliti, yuqori sifatli kontekst va tizimli fikrlash.
-- **Ta'sir**: `packages/ai`, `apps/backend`, `.env.example`, AI agent promptlari va integratsiyalari. Barcha OpenAI importlari tozalanishi shart.
+## D-001 (2026-10-24, Yangilandi: 2026-10-25) — AI Provayder va Multi-Provider Gateway
+- **Qaror**: Yagona Multi-Provider AI Gateway:
+  1. **Anthropic Claude** (Claude 3.5 Sonnet) — birlamchi kognitiv intellekt (`ANTHROPIC_API_KEY`).
+  2. **Google Gemini** (Gemini 1.5 Pro) — ikkilamchi/muqobil kognitiv intellekt (`GEMINI_API_KEY`).
+  3. **Lokal Kognitiv Dvigatel** — API kalitlar mavjud bo'lmaganda foydalanuvchining o'tgan telemetriya datasitiga tayangan holda deterministik javob sintezatori.
+- **Sabab**: Yuqori sifatli kontekst, tezkor tahlil, provayderga qattiq bog'lanib qolmaslik (fault-tolerance) va xavfsiz to'g'ridan-to'g'ri HTTP chaqiruvlari.
+- **Ta'sir**: `apps/web/src/app/api/twin/chat/route.ts`, `packages/ai`, `apps/backend`. Barcha so'rovlar yagona xavfsiz shlyuz orqali o'tadi.
 
 ---
 

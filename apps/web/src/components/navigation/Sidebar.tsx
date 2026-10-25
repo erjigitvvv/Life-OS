@@ -176,6 +176,16 @@ export function Sidebar({ locale }: SidebarProps) {
       label: t('growth'),
       items: [
         {
+          name: t('growthHub'),
+          href: `/${locale}/growth`,
+          icon: Sparkles,
+          submenus: [
+            { name: 'Kaizen 1% Retrospektivasi', href: `/${locale}/growth?tab=kaizen` },
+            { name: 'OKR & SMART Maqsadlar', href: `/${locale}/growth?tab=goals` },
+            { name: 'Bio-metrika & Salomatlik', href: `/${locale}/growth?tab=health` },
+          ],
+        },
+        {
           name: t('kaizen'),
           href: `/${locale}/kaizen`,
           icon: TrendingUp,
