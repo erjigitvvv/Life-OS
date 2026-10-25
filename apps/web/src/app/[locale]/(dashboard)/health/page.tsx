@@ -22,8 +22,9 @@ export default function HealthPage() {
   const t = useTranslations('growth');
   const { healthLogs, logHealth } = useLifeOS();
 
+  const healthLogsList: HealthLog[] = Object.values(healthLogs);
   const todayIso = new Date().toISOString().split('T')[0];
-  const todayLog = healthLogs.find((l) => l.date === todayIso) || {
+  const todayLog = healthLogsList.find((l: HealthLog) => l.date === todayIso) || {
     date: todayIso,
     waterGlasses: 6,
     sleepHours: 7.5,
@@ -312,7 +313,7 @@ export default function HealthPage() {
       <div className="bg-white dark:bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
         <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary" />
-          Oxirgi Kunlar Salomatlik Tarixi ({healthLogs.length} kun)
+          Oxirgi Kunlar Salomatlik Tarixi ({healthLogsList.length} kun)
         </h3>
 
         <div className="overflow-x-auto">
@@ -328,7 +329,7 @@ export default function HealthPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {healthLogs.map((log) => (
+              {healthLogsList.map((log: HealthLog) => (
                 <tr key={log.date} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
                   <td className="py-3 font-mono font-bold text-foreground">{log.date}</td>
                   <td className="py-3 font-mono text-cyan-600 font-bold">{log.waterGlasses} / 8</td>

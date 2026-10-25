@@ -193,7 +193,7 @@ export default function TrackerTablePage() {
 
                     {/* 7 Days In-Cell Editable Cells */}
                     {weekDays.map((d) => {
-                      const currentVal = tracker.values[d.iso] ?? '';
+                      const currentVal = tracker.values[d.iso];
                       const isOverGoal = typeof currentVal === 'number' && currentVal >= tracker.goal;
 
                       return (
@@ -206,13 +206,13 @@ export default function TrackerTablePage() {
                           <input
                             type="number"
                             step="0.1"
-                            defaultValue={currentVal}
+                            defaultValue={currentVal !== undefined ? currentVal : ''}
                             placeholder="-"
                             onBlur={(e) => handleCellBlur(tracker.id, d.iso, e.target.value)}
                             className={`w-full py-1.5 px-1 text-center font-mono text-xs rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 ${
                               isOverGoal
                                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-bold border-emerald-200'
-                                : currentVal !== ''
+                                : currentVal !== undefined
                                 ? 'bg-white dark:bg-card border-border text-foreground font-semibold'
                                 : 'bg-transparent border-transparent hover:border-border/60 text-muted-foreground'
                             }`}
