@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { activityLogger } from './activity-logger';
+import { vectorMemory } from './vector-memory';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -1011,6 +1013,16 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    // Digital Twin Telemetry Capture
+    activityLogger.log({
+      eventType: 'task_created',
+      category: 'productivity',
+      title: `Yangi vazifa yaratildi: "${task.title}"`,
+      description: task.description,
+      metadata: { taskId: newTask.id, priority: task.priority, tags: task.tags },
+    });
+    vectorMemory.rebuildFromActivities();
   }
 
   public updateTask(id: string, updates: Partial<Task>) {
@@ -1022,11 +1034,13 @@ class StoreEngine {
   }
 
   public moveTask(taskId: string, status: TaskStatus) {
+    let completedTask: Task | undefined;
     this.state = {
       ...this.state,
       tasks: this.state.tasks.map((t) => {
         if (t.id === taskId) {
           const isDone = status === 'done';
+          if (isDone) completedTask = t;
           return {
             ...t,
             status,
@@ -1041,6 +1055,19 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    // Digital Twin Telemetry Capture
+    if (status === 'done' && completedTask) {
+      activityLogger.log({
+        eventType: 'task_completed',
+        category: 'productivity',
+        title: `Vazifa muvaffaqiyatli yakunlandi: "${completedTask.title}"`,
+        description: completedTask.description,
+        durationMinutes: completedTask.actualTime || 35,
+        metadata: { taskId, priority: completedTask.priority, tags: completedTask.tags },
+      });
+      vectorMemory.rebuildFromActivities();
+    }
   }
 
   public deleteTask(id: string) {
@@ -1053,15 +1080,22 @@ class StoreEngine {
 
   // --- Habits CRUD ---
   public toggleHabit(id: string, date: string = getTodayIso()) {
+    let habitName = '';
+    let isNowCompleted = false;
+    let currentStreak = 0;
+
     this.state = {
       ...this.state,
       habits: this.state.habits.map((h) => {
         if (h.id === id) {
+          habitName = h.name;
           const exists = h.completedDates.includes(date);
+          isNowCompleted = !exists;
           const nextDates = exists
             ? h.completedDates.filter((d) => d !== date)
             : [...h.completedDates, date];
           const newStreak = exists ? Math.max(0, h.streak - 1) : h.streak + 1;
+          currentStreak = newStreak;
           const best = Math.max(h.bestStreak, newStreak);
           return {
             ...h,
@@ -1078,6 +1112,17 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    // Digital Twin Telemetry Capture
+    if (habitName) {
+      activityLogger.log({
+        eventType: isNowCompleted ? 'habit_completed' : 'habit_missed',
+        category: 'habits',
+        title: isNowCompleted ? `Odat bajarildi: "${habitName}"` : `Odat bekor qilindi: "${habitName}"`,
+        metadata: { habitId: id, date, streak: currentStreak },
+      });
+      vectorMemory.rebuildFromActivities();
+    }
   }
 
   public addHabit(habit: Omit<Habit, 'id' | 'streak' | 'bestStreak' | 'completedDates'>) {
@@ -1195,6 +1240,16 @@ class StoreEngine {
       budgets: nextBudgets,
     };
     this.notify();
+
+    // Digital Twin Telemetry Capture
+    activityLogger.log({
+      eventType: 'finance_transaction',
+      category: 'finance',
+      title: tx.type === 'income' ? `Daromad kiritildi: ${tx.amount.toLocaleString()} so'm` : `Xarajat: ${tx.amount.toLocaleString()} so'm (${tx.category})`,
+      description: tx.description,
+      metadata: { amount: tx.amount, type: tx.type, category: tx.category },
+    });
+    vectorMemory.rebuildFromActivities();
   }
 
   public deleteTransaction(id: string) {
@@ -1274,9 +1329,18 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    activityLogger.log({
+      eventType: 'finance_card_balance',
+      category: 'finance',
+      title: `Yangi karta ulandi: ${card.name} (${card.type.toUpperCase()})`,
+      metadata: { cardId: newCard.id, type: card.type, balance: card.balance },
+    });
+    vectorMemory.rebuildFromActivities();
   }
 
   public updateCardBalance(cardId: string, newBalance: number) {
+    const card = (this.state.cards || []).find((c) => c.id === cardId);
     this.state = {
       ...this.state,
       cards: (this.state.cards || []).map((c) =>
@@ -1284,6 +1348,16 @@ class StoreEngine {
       ),
     };
     this.notify();
+
+    if (card) {
+      activityLogger.log({
+        eventType: 'finance_card_balance',
+        category: 'finance',
+        title: `Karta balansi yangilandi: ${card.name}`,
+        metadata: { cardId, oldBalance: card.balance, newBalance },
+      });
+      vectorMemory.rebuildFromActivities();
+    }
   }
 
   public deleteCard(cardId: string) {
@@ -1309,6 +1383,14 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    activityLogger.log({
+      eventType: 'finance_transaction',
+      category: 'finance',
+      title: `Zaxira fondiga (Emergency Fund) depozit: ${amount.toLocaleString()} so'm`,
+      metadata: { amount, type: 'emergency_deposit' },
+    });
+    vectorMemory.rebuildFromActivities();
   }
 
   public updateEmergencyFund(updates: Partial<EmergencyFund>) {
@@ -1389,6 +1471,16 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    // Digital Twin Telemetry Capture
+    activityLogger.log({
+      eventType: 'finance_transaction',
+      category: 'finance',
+      title: `50/30/20 Qoidasi avtomatizatsiyasi: ${amount.toLocaleString()} so'm taqsimlandi`,
+      description: `Ehtiyojlar: ${needsAmount.toLocaleString()}, Xohishlar: ${wantsAmount.toLocaleString()}, Jamg'arma & Zaxira: ${savingsAmount.toLocaleString()}`,
+      metadata: { amount, rule503020: true, needsAmount, wantsAmount, savingsAmount },
+    });
+    vectorMemory.rebuildFromActivities();
   }
 
   // --- Study SM-2 Flashcards CRUD ---
@@ -1479,6 +1571,7 @@ class StoreEngine {
     newStatus?: SkillStatus
   ) {
     let gainedXp = 0;
+    let completedTopicTitle = '';
     const nextRoadmaps = (this.state.roadmaps || []).map((rm) => {
       if (rm.id !== roadmapId) return rm;
       const nextStages = rm.stages.map((stage) => {
@@ -1495,6 +1588,7 @@ class StoreEngine {
           }
           if (status === 'completed' && t.status !== 'completed') {
             gainedXp = 20;
+            completedTopicTitle = t.title;
           }
           return {
             ...t,
@@ -1516,6 +1610,17 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    if (completedTopicTitle) {
+      activityLogger.log({
+        eventType: 'study_topic_completed',
+        category: 'study',
+        title: `Ta'lim mavzusi o'zlashtirildi: "${completedTopicTitle}"`,
+        description: `Roadmap: ${roadmapId.toUpperCase()}, Bosqich: ${stageId}`,
+        metadata: { roadmapId, stageId, topicId, xpGained: gainedXp },
+      });
+      vectorMemory.rebuildFromActivities();
+    }
   }
 
   public addRoadmapTopic(roadmapId: string, stageId: string, topic: Omit<LearningTopic, 'id'>) {
@@ -1570,6 +1675,15 @@ class StoreEngine {
       },
     };
     this.notify();
+
+    activityLogger.log({
+      eventType: 'kaizen_entry_logged',
+      category: 'growth',
+      title: `Kunlik Kaizen qayd etildi (Baholash: ${entry.rating}/5)`,
+      description: `Yutuq: ${entry.wins || 'Yo\'q'}, Rivojlanish: ${entry.improvements || 'Yo\'q'}, Xulosa: ${entry.learnings || 'Yo\'q'}`,
+      metadata: { rating: entry.rating, wins: entry.wins },
+    });
+    vectorMemory.rebuildFromActivities();
   }
 
   // --- Goals CRUD ---

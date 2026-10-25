@@ -15,7 +15,8 @@
 | **Baza Migratsiyalari** | 🟡 Yozilgan | Supabase uchun 10 ta SQL migratsiya mavjud, local/cloud Supabase ga bog'lash kerak |
 | **CI / CD Pipeline** | 🟢 Tayyor | `.github/workflows/ci.yml` ishga tushirildi |
 | **Vertikal Kesim (Tasks)** | ⏳ Navbatda | Auth ➔ DB ➔ UI ➔ Test zanjirini to'liq bog'lash |
-| **AI Servislari** | 🟡 Tuzatildi | `ai_coach.py` dagi `userMessage` sintaktik xatosi tuzatildi; keyingi qadamda Claude SDK ga o'tiladi |
+| **Digital Twin Engine** | 🟢 Tayyor | 4-bosqichli Continuous Learning closed loop (Telemetry ➔ Vector Store ➔ Patterns ➔ AI Chat) |
+| **AI Servislari** | 🟢 Yangilandi | Anthropic Claude API & Dataset-grounded RAG kognitiv egizak integratsiyasi |
 
 ---
 
@@ -41,6 +42,12 @@
    - Milliy va xalqaro kartalar: Uzcard (Kapitalbank, milliy zumrad-ko'k), Humo (TBC Bank, yorqin to'q sariq), Visa Platinum (midnight obsidian & gold), Mastercard World Elite (kosmik binafsha & qizil/sariq doiralar), Naqd Hamyon (qog'oz pul ikonkasi va maxsus zaxira).
    - Jonli umumiy balans: barcha kartalar va naqd pul yig'indisi stack tepasida real vaqtda aks etadi.
    - Apple spring physics: `framer-motion` orqali silliq sakrash (bounce), yoyish (fan-out) va har bir bosishda fizik animatsiyalar.
+6. **Digital Twin (Raqamli Egizak) 4-Bosqichli Yopiq Sikl (Closed-Loop Continuous Learning)**:
+   - **Stage 1 (Capture Telemetriya)**: `ActivityLogger` xizmati orqali barcha vazifalar, tranzaksiyalar, odatlar, vaqt va o'quv faoliyatlari real-vaqtda log qilinadi.
+   - **Stage 2 (Vector Memory)**: 64 o'lchamli semantik vektor fazosi va kosinus o'xshashligi (`cosineSimilarity`) orqali sub-millisekundli semantik qidiruv.
+   - **Stage 3 (Pattern Recognition)**: Kognitiv xronotip (08:30-11:30 Deep Work peak), moliyaviy sarflar oqishi (weekend spikes) va zanjirli odatlar (habit stacking) yashirin qonuniyatlarini aniqlovchi va tizimni foydalanuvchiga avtomatik moslovchi tahlil dvigateli.
+   - **Stage 4 (Digital Twin AI)**: Qoliplardan xoli, to'liq foydalanuvchining o'tmish datasetiga va vektorli xotirasiga tayangan holda gapiruvchi Anthropic Claude 3.5 Sonnet & lokal kognitiv RAG suhbat tizimi.
+   - **Interactive UI**: `DigitalTwinHub.tsx` va `/[locale]/twin` dashboard sahifasi jonli telemetriya oqimi, vektor xotirasi inspektori, aniqlangan qonuniyatlar va interaktiv egizak suhbati bilan to'liq ishga tushirildi.
 
 ---
 

@@ -31,6 +31,7 @@ import {
   Folder,
   FolderOpen,
   GraduationCap,
+  Brain,
 } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import { ThemeToggle } from '../ThemeToggle';
@@ -94,6 +95,16 @@ export function Sidebar({ locale }: SidebarProps) {
           submenus: [
             { name: t('dailyCenter'), href: `/${locale}/today?view=daily` },
             { name: t('dailyStats'), href: `/${locale}/today?view=stats` },
+          ],
+        },
+        {
+          name: t('twin'),
+          href: `/${locale}/twin`,
+          icon: Brain,
+          badge: 'AI Twin',
+          submenus: [
+            { name: 'Continuous Learning Loop', href: `/${locale}/twin` },
+            { name: 'Dataset-Aware AI Chat', href: `/${locale}/twin` },
           ],
         },
         {
