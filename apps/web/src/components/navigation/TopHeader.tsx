@@ -26,7 +26,7 @@ export function TopHeader() {
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>Salom,</span>
           <span className="font-semibold text-foreground">{user.name}</span>
-          <span className="inline-block animate-pulse text-amber-500">✨</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 inline-block animate-pulse" />
         </div>
       </div>
 

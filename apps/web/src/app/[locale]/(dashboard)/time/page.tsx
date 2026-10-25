@@ -124,7 +124,7 @@ export default function TrackerTablePage() {
             <span className="text-foreground">Haftalik Interaktiv Kataklar (Hafta kunlari)</span>
           </div>
           <span className="text-muted-foreground font-mono text-[11px]">
-            ⚡ Katakchani bosib to'g'ridan-to'g'ri qiymat kiriting
+            Katakchani bosib to'g'ridan-to'g'ri qiymat kiriting
           </span>
         </div>
 

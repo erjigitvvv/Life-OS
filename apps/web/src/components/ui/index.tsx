@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { clsx } from '@/lib/utils';
+import { Pin, CheckCircle2, XCircle, AlertTriangle, X } from 'lucide-react';
 
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -188,16 +189,16 @@ export const Toast = ({ title, description, variant = 'default', onClose }: Toas
   };
 
   const icons = {
-    default: '📌',
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
+    default: <Pin className="w-5 h-5 text-primary" />,
+    success: <CheckCircle2 className="w-5 h-5 text-green-600" />,
+    error: <XCircle className="w-5 h-5 text-red-600" />,
+    warning: <AlertTriangle className="w-5 h-5 text-yellow-600" />,
   };
 
   return (
     <div className={clsx('rounded-lg border p-4 shadow-lg', variants[variant])}>
       <div className="flex items-start gap-3">
-        <span className="text-xl">{icons[variant]}</span>
+        <span className="shrink-0">{icons[variant]}</span>
         <div className="flex-1">
           <h3 className="font-semibold">{title}</h3>
           {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}

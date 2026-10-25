@@ -130,11 +130,11 @@ export default function BoardPage() {
     const diffHours = (due - now) / (1000 * 60 * 60);
 
     if (diffHours < 0) {
-      return { label: '⚠️ Overdue', color: 'text-red-500 bg-red-500/10 border-red-500/30 animate-pulse' };
+      return { label: 'Overdue', color: 'text-red-500 bg-red-500/10 border-red-500/30 animate-pulse' };
     } else if (diffHours <= 24) {
-      return { label: `⏳ ${Math.round(diffHours)}h left`, color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' };
+      return { label: `${Math.round(diffHours)}h left`, color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' };
     } else {
-      return { label: `📅 ${Math.round(diffHours / 24)}d left`, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30' };
+      return { label: `${Math.round(diffHours / 24)}d left`, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30' };
     }
   };
 
