@@ -2,10 +2,6 @@
   "name": "lifeos",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
