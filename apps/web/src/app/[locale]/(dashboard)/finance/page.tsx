@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLifeOS, Transaction, Budget, SavingsGoal } from '@/lib/store';
+import { useLifeOS } from '@/lib/store';
+import { Transaction, Budget, SavingsGoal } from '@lifeos/shared';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {

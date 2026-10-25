@@ -25,6 +25,7 @@ import {
   Zap,
   Layers,
   Sparkles,
+  Bot,
 } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import { ThemeToggle } from '../ThemeToggle';
@@ -59,18 +60,13 @@ export function Sidebar({ locale }: SidebarProps) {
           href: `/${locale}/today`,
           icon: LayoutDashboard,
           badge: tasks.filter((t) => t.status !== 'done').length.toString(),
-          submenus: [
-            { name: t('dailyCenter'), href: `/${locale}/today?view=daily` },
-            { name: t('dailyStats'), href: `/${locale}/today?view=stats` },
-          ],
         },
         {
           name: t('board'),
           href: `/${locale}/board`,
           icon: Kanban,
           submenus: [
-            { name: 'Backlog & To Do', href: `/${locale}/board#todo` },
-            { name: 'In Progress & Done', href: `/${locale}/board#done` },
+            { name: 'Yaxlit Kanban Doska', href: `/${locale}/board` },
           ],
         },
       ],
@@ -173,6 +169,18 @@ export function Sidebar({ locale }: SidebarProps) {
             { name: 'Til Sozlamasi', href: `/${locale}/settings#language` },
             { name: 'Baza & Zaxira', href: `/${locale}/settings#storage` },
           ],
+        },
+      ],
+    },
+    {
+      key: 'ai-twin',
+      label: 'AI Ko\'chirma',
+      items: [
+        {
+          name: t('digitalTwin'),
+          href: `/${locale}/twin`,
+          icon: Bot,
+          badge: 'AI ✨',
         },
       ],
     },

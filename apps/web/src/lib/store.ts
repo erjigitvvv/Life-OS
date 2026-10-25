@@ -1,171 +1,65 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { z } from 'zod';
+import {
+  calculateXP,
+  calculateLevel,
+  levelProgress,
+  calculateTaskXP,
+  calculateStudyXP,
+  calculateStreakXP,
+  calculateSM2,
+  isDueForReview,
+  calculateLifeScore,
+  getLifeScoreBreakdown,
+  XP_REWARDS,
+} from '@lifeos/rules';
+import {
+  createTaskSchema,
+  createHabitSchema,
+  createTransactionSchema,
+  createBudgetCategorySchema,
+  createSavingsGoalSchema,
+  createDebtSchema,
+  createSubscriptionSchema,
+  dailyDataSchema,
+  sm2InputSchema,
+  userStatsSchema,
+  DatabaseState,
+  Task,
+  TaskStatus,
+  TaskPriority,
+  Habit,
+  Transaction,
+  Budget,
+  SavingsGoal,
+  StudyCard,
+  StudyResource,
+  KaizenEntry,
+  KeyResult,
+  Goal,
+  HealthLog,
+  NotificationItem,
+  SystemIssue,
+  UserProfile,
+  TrackerRow,
+} from '@lifeos/shared';
+import { eventsApi } from './api';
 
-export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+/* ============================================
+   Offline-first sync constants
+   ============================================ */
 
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  color?: string;
-  icon?: string;
-  tags: string[];
-  dueDate?: string;
-  createdAt: string;
-  completedAt?: string;
-}
+const STORAGE_KEY = 'lifeos_database_v2';
+const SYNC_QUEUE_KEY = 'lifeos_sync_queue_v2';
+const SYNC_INTERVAL_MS = 5_000;
+const MAX_SYNC_RETRIES = 3;
 
-export interface Habit {
-  id: string;
-  name: string;
-  targetDays: number;
-  color: string;
-  icon: string;
-  streak: number;
-  bestStreak: number;
-  completedDates: string[]; // YYYY-MM-DD
-  reminderTime: string;
-  timeOfDay: 'morning' | 'afternoon' | 'evening';
-}
+/* ============================================
+   Shared types / defaults
+   ============================================ */
 
-export interface TrackerRow {
-  id: string;
-  name: string;
-  icon: string;
-  unit: string;
-  goal: number;
-  values: Record<string, number>; // date "YYYY-MM-DD" -> numeric value
-}
-
-export interface Transaction {
-  id: string;
-  type: 'income' | 'expense';
-  category: string;
-  amount: number;
-  description: string;
-  date: string;
-}
-
-export interface Budget {
-  id: string;
-  category: string;
-  limit: number;
-  spent: number;
-  month: string;
-}
-
-export interface SavingsGoal {
-  id: string;
-  name: string;
-  targetAmount: number;
-  currentAmount: number;
-  targetDate: string;
-  icon: string;
-}
-
-export interface StudyCard {
-  id: string;
-  deck: string;
-  front: string;
-  back: string;
-  easinessFactor: number;
-  interval: number;
-  repetitions: number;
-  nextReviewDate: string;
-  lastQuality?: number;
-}
-
-export interface StudyResource {
-  id: string;
-  title: string;
-  type: 'book' | 'article' | 'course';
-  url?: string;
-  status: 'reading' | 'want_to_read' | 'completed';
-  progress: number;
-}
-
-export interface KaizenEntry {
-  id: string;
-  date: string;
-  wins: string[];
-  improvements: string;
-  learnings: string;
-  rating: number;
-}
-
-export interface KeyResult {
-  id: string;
-  title: string;
-  completed: boolean;
-  progress: number;
-}
-
-export interface Goal {
-  id: string;
-  title: string;
-  category: string;
-  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-  targetDate: string;
-  progress: number;
-  keyResults: KeyResult[];
-}
-
-export interface HealthLog {
-  date: string;
-  waterGlasses: number;
-  sleepHours: number;
-  sleepQuality: string;
-  workoutMinutes: number;
-  workoutType: string;
-}
-
-export interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'warning' | 'success';
-  time: string;
-  read: boolean;
-}
-
-export interface SystemIssue {
-  id: string;
-  title: string;
-  description: string;
-  type: 'sync' | 'overdue' | 'budget' | 'storage';
-  resolved: boolean;
-}
-
-export interface UserProfile {
-  name: string;
-  level: number;
-  xp: number;
-  streak: number;
-  lifeScore: number;
-}
-
-export interface DatabaseState {
-  user: UserProfile;
-  tasks: Task[];
-  habits: Habit[];
-  trackers: TrackerRow[];
-  transactions: Transaction[];
-  budgets: Budget[];
-  savings: SavingsGoal[];
-  studyCards: StudyCard[];
-  studyResources: StudyResource[];
-  kaizenEntries: KaizenEntry[];
-  goals: Goal[];
-  healthLogs: Record<string, HealthLog>;
-  notifications: NotificationItem[];
-  issues: SystemIssue[];
-}
-
-// Generate dates for current week
 function getTodayIso(): string {
   const d = new Date();
   return d.toISOString().split('T')[0];
@@ -182,13 +76,17 @@ const yesterdayStr = getOffsetDateIso(-1);
 const dayBeforeYesterdayStr = getOffsetDateIso(-2);
 const day3AgoStr = getOffsetDateIso(-3);
 
+/* ============================================
+   Initial database state (demo data)
+   ============================================ */
+
 export const INITIAL_DATABASE: DatabaseState = {
   user: {
     name: 'Senior Developer',
-    level: 14,
-    xp: 4820,
-    streak: 18,
-    lifeScore: 89,
+    level: 1,
+    xp: 0,
+    streak: 0,
+    lifeScore: 0,
   },
   tasks: [
     {
@@ -272,9 +170,9 @@ export const INITIAL_DATABASE: DatabaseState = {
       targetDays: 30,
       color: '#10b981',
       icon: 'Activity',
-      streak: 18,
-      bestStreak: 25,
-      completedDates: [todayStr, yesterdayStr, dayBeforeYesterdayStr, day3AgoStr],
+      streak: 0,
+      bestStreak: 0,
+      completedDates: [],
       reminderTime: '06:30',
       timeOfDay: 'morning',
     },
@@ -284,9 +182,9 @@ export const INITIAL_DATABASE: DatabaseState = {
       targetDays: 30,
       color: '#06b6d4',
       icon: 'Droplets',
-      streak: 21,
-      bestStreak: 21,
-      completedDates: [todayStr, yesterdayStr, dayBeforeYesterdayStr, day3AgoStr],
+      streak: 0,
+      bestStreak: 0,
+      completedDates: [],
       reminderTime: '09:00',
       timeOfDay: 'morning',
     },
@@ -296,9 +194,9 @@ export const INITIAL_DATABASE: DatabaseState = {
       targetDays: 60,
       color: '#8b5cf6',
       icon: 'BookOpen',
-      streak: 12,
-      bestStreak: 19,
-      completedDates: [yesterdayStr, dayBeforeYesterdayStr, day3AgoStr],
+      streak: 0,
+      bestStreak: 0,
+      completedDates: [],
       reminderTime: '17:00',
       timeOfDay: 'afternoon',
     },
@@ -308,9 +206,9 @@ export const INITIAL_DATABASE: DatabaseState = {
       targetDays: 30,
       color: '#f59e0b',
       icon: 'CheckSquare',
-      streak: 14,
-      bestStreak: 14,
-      completedDates: [yesterdayStr, dayBeforeYesterdayStr, day3AgoStr],
+      streak: 0,
+      bestStreak: 0,
+      completedDates: [],
       reminderTime: '22:00',
       timeOfDay: 'evening',
     },
@@ -344,7 +242,7 @@ export const INITIAL_DATABASE: DatabaseState = {
     },
     {
       id: 'track-study',
-      name: 'O\'qish & Ilm',
+      name: "O'qish & Ilm",
       icon: 'BookOpen',
       unit: 'soat',
       goal: 2.5,
@@ -402,7 +300,7 @@ export const INITIAL_DATABASE: DatabaseState = {
     {
       id: 'tx-3',
       type: 'expense',
-      category: 'Ta\'lim & Kitoblar',
+      category: "Ta'lim & Kitoblar",
       amount: 320000,
       description: 'Algoritmlar bo\'yicha yangi qo\'llanma',
       date: yesterdayStr,
@@ -434,7 +332,7 @@ export const INITIAL_DATABASE: DatabaseState = {
     },
     {
       id: 'b-2',
-      category: 'Ta\'lim & Kurslar',
+      category: "Ta'lim & Kurslar",
       limit: 2500000,
       spent: 1120000,
       month: '2026-10',
@@ -448,7 +346,7 @@ export const INITIAL_DATABASE: DatabaseState = {
     },
     {
       id: 'b-4',
-      category: 'Ko\'ngilochar & Dam olish',
+      category: "Ko'ngilochar & Dam olish",
       limit: 1200000,
       spent: 980000,
       month: '2026-10',
@@ -601,7 +499,7 @@ export const INITIAL_DATABASE: DatabaseState = {
       date: todayStr,
       waterGlasses: 7,
       sleepHours: 8.1,
-      sleepQuality: 'A\'lo (Tinch uyqu)',
+      sleepQuality: "A'lo (Tinch uyqu)",
       workoutMinutes: 45,
       workoutType: 'Yugurish & Turnik',
     },
@@ -634,7 +532,7 @@ export const INITIAL_DATABASE: DatabaseState = {
     {
       id: 'notif-3',
       title: 'Byudjet ogohlantirishi ⚠️',
-      message: 'Ko\'ngilochar xarajatlar oylik limitning 82% iga yetdi.',
+      message: "Ko'ngilochar xarajatlar oylik limitning 82% iga yetdi.",
       type: 'warning',
       time: '3 soat oldin',
       read: true,
@@ -643,7 +541,7 @@ export const INITIAL_DATABASE: DatabaseState = {
   issues: [
     {
       id: 'iss-1',
-      title: 'Ko\'ngilochar byudjet chegarasi (82%)',
+      title: "Ko'ngilochar byudjet chegarasi (82%)",
       description: 'Oylik byudjetingiz 80% dan oshdi. Xarajatlarni optimallashtirish tavsiya etiladi.',
       type: 'budget',
       resolved: false,
@@ -658,28 +556,214 @@ export const INITIAL_DATABASE: DatabaseState = {
   ],
 };
 
-const STORAGE_KEY = 'lifeos_database_v2';
+/* ============================================
+   Validation helpers (Zod)
+   ============================================ */
+
+// Re-export shared types for convenience
+export type { TaskStatus, TaskPriority, Task, Transaction, Budget, SavingsGoal, HealthLog, Goal, Habit, StudyCard, StudyResource, KaizenEntry, UserProfile, TrackerRow } from '@lifeos/shared';
+
+export function validateInput<T>(
+  schema: z.ZodSchema<T>,
+  input: unknown
+): { ok: true; data: T } | { ok: false; error: z.ZodError } {
+  const result = schema.safeParse(input);
+  if (!result.success) return { ok: false, error: result.error };
+  return { ok: true, data: result.data };
+}
+
+/* ============================================
+   Sync queue types
+   ============================================ */
+
+export type SyncOperation =
+  | { op: 'create_task'; payload: Omit<Task, 'id' | 'createdAt'> }
+  | { op: 'update_task'; payload: { id: string; updates: Partial<Task> } }
+  | { op: 'move_task'; payload: { taskId: string; status: TaskStatus } }
+  | { op: 'delete_task'; payload: { id: string } }
+  | { op: 'toggle_habit'; payload: { id: string; date?: string } }
+  | { op: 'add_habit'; payload: Omit<Habit, 'id' | 'streak' | 'bestStreak' | 'completedDates'> }
+  | { op: 'add_transaction'; payload: Omit<Transaction, 'id'> }
+  | { op: 'add_savings'; payload: { id: string; amount: number } }
+  | { op: 'rate_card'; payload: { cardId: string; quality: number } }
+  | { op: 'add_goal'; payload: Omit<Goal, 'id'> }
+  | { op: 'log_health'; payload: { date: string; partial: Partial<HealthLog> } };
+
+export interface SyncQueueItem {
+  id: string;
+  op: SyncOperation['op'];
+  payload: unknown;
+  createdAt: string;
+  retries: number;
+}
+
+/* ============================================
+   Supabase sync client (lazy)
+   ============================================ */
+
+let supabaseClient: any = null;
+
+function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  try {
+    // @ts-ignore - created by @supabase/ssr or @supabase/supabase-js
+    const { createClient } = require('@supabase/supabase-js');
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anonKey) return null;
+    supabaseClient = createClient(url, anonKey);
+    return supabaseClient;
+  } catch {
+    return null;
+  }
+}
+
+/* ============================================
+   Offline sync engine
+   ============================================ */
+
+function loadSyncQueue(): SyncQueueItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SYNC_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSyncQueue(queue: SyncQueueItem[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+  } catch {
+    // silent
+  }
+}
+
+async function syncQueueItem(item: SyncQueueItem): Promise<boolean> {
+  const sb = getSupabaseClient();
+  if (!sb) return false;
+
+  try {
+    switch (item.op) {
+      case 'create_task': {
+        const p = item.payload as Omit<Task, 'id' | 'createdAt'>;
+        await sb.from('tasks').insert({ user_id: (await sb.auth.getUser()).data.user?.id, ...p });
+        break;
+      }
+      case 'update_task': {
+        const p = item.payload as { id: string; updates: Partial<Task> };
+        await sb.from('tasks').update(p.updates).eq('id', p.id);
+        break;
+      }
+      case 'move_task': {
+        const p = item.payload as { taskId: string; status: TaskStatus };
+        const updates: Partial<Task> = { status: p.status };
+        if (p.status === 'done') updates.completed_at = new Date().toISOString();
+        await sb.from('tasks').update(updates).eq('id', p.taskId);
+        break;
+      }
+      case 'delete_task': {
+        const p = item.payload as { id: string };
+        await sb.from('tasks').delete().eq('id', p.id);
+        break;
+      }
+      case 'toggle_habit': {
+        const p = item.payload as { id: string; date?: string };
+        await sb.from('habit_logs').upsert({ habit_id: p.id, date: p.date ?? todayStr, completed: true });
+        break;
+      }
+      default:
+        break;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/* ============================================
+   StoreEngine class
+   ============================================ */
 
 class StoreEngine {
   private state: DatabaseState;
   private listeners: Set<() => void> = new Set();
+  private syncTimer: ReturnType<typeof setInterval> | null = null;
+  private syncInProgress = false;
 
   constructor() {
     this.state = INITIAL_DATABASE;
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          this.state = { ...INITIAL_DATABASE, ...parsed };
-        } else {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATABASE));
-        }
-      } catch (e) {
-        console.error('Failed to load store from localStorage', e);
+    this.loadFromStorage();
+    this.startSyncTimer();
+  }
+
+  /* ---------- Storage ---------- */
+
+  private loadFromStorage() {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        this.state = { ...INITIAL_DATABASE, ...parsed };
+        this.recalculateUserMetrics();
       }
+    } catch (e) {
+      console.error('Failed to load store from localStorage', e);
     }
   }
+
+  private persist() {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    } catch (e) {
+      console.error('Failed to save to localStorage', e);
+    }
+  }
+
+  private notify() {
+    this.persist();
+    this.listeners.forEach((fn) => fn());
+  }
+
+  /* ---------- Sync timer ---------- */
+
+  private startSyncTimer() {
+    if (typeof window === 'undefined') return;
+    this.syncTimer = setInterval(() => this.processSyncQueue(), SYNC_INTERVAL_MS);
+  }
+
+  private stopSyncTimer() {
+    if (this.syncTimer) clearInterval(this.syncTimer);
+    this.syncTimer = null;
+  }
+
+  private async processSyncQueue() {
+    if (this.syncInProgress) return;
+    this.syncInProgress = true;
+
+    const queue = loadSyncQueue();
+    if (queue.length === 0) {
+      this.syncInProgress = false;
+      return;
+    }
+
+    const remaining: SyncQueueItem[] = [];
+    for (const item of queue) {
+      const ok = await syncQueueItem(item);
+      if (!ok) {
+        item.retries += 1;
+        if (item.retries < MAX_SYNC_RETRIES) remaining.push(item);
+      }
+    }
+    saveSyncQueue(remaining);
+    this.syncInProgress = false;
+  }
+
+  /* ---------- Getters ---------- */
 
   public getState(): DatabaseState {
     return this.state;
@@ -692,49 +776,110 @@ class StoreEngine {
     };
   }
 
-  private notify() {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-      } catch (e) {
-        console.error('Failed to save to localStorage', e);
-      }
+  /* ---------- Recalculate metrics (rules) ---------- */
+
+  private recalculateUserMetrics() {
+    const { user } = this.state;
+
+    // Calculate level from current XP
+    const newLevel = calculateLevel(user.xp);
+
+    // Calculate life score from today's logs
+    const healthLog = this.state.healthLogs[todayStr];
+    const dailyData = {
+      tasksCompleted: this.state.tasks.filter((t) => t.status === 'done').length,
+      tasksTotal: this.state.tasks.length,
+      studyMinutes: this.state.studySessions?.reduce((s, c) => s + c.duration_minutes, 0) ?? 0,
+      habitsCompleted: this.state.habits.filter((h) => h.completedDates.includes(todayStr)).length,
+      habitsTotal: this.state.habits.length,
+      timeLoggedMinutes: this.state.timeLogs?.reduce((s, c) => s + (c.duration_minutes ?? 0), 0) ?? 0,
+      sleepHours: healthLog?.sleepHours,
+      exerciseMinutes: healthLog?.workoutMinutes,
+      energyLevel: undefined,
+      budgetSpent: undefined,
+      budgetAllocated: undefined,
+    };
+
+    const validation = validateInput(dailyDataSchema, dailyData);
+    let lifeScore = 0;
+    if (validation.ok) {
+      lifeScore = calculateLifeScore(validation.data);
     }
-    this.listeners.forEach((fn) => fn());
+
+    this.state = {
+      ...this.state,
+      user: {
+        ...user,
+        level: newLevel,
+        lifeScore,
+      },
+    };
   }
 
-  // --- Tasks CRUD ---
+  /* ---------- Tasks CRUD ---------- */
+
   public addTask(task: Omit<Task, 'id' | 'createdAt'>) {
+    // Zod validation
+    const validation = validateInput(createTaskSchema, task);
+    if (!validation.ok) {
+      throw new Error(`Task validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+    }
+
     const newTask: Task = {
-      ...task,
+      ...validation.data,
       id: `task-${Date.now()}`,
       createdAt: getTodayIso(),
     };
+
+    // Optimistic XP update via @lifeos/rules
+    const xpReward = calculateXP('task_created');
+    const newXp = this.state.user.xp + xpReward;
+    const newLevel = calculateLevel(newXp);
+
     this.state = {
       ...this.state,
       tasks: [newTask, ...this.state.tasks],
       user: {
         ...this.state.user,
-        xp: this.state.user.xp + 10,
+        xp: newXp,
+        level: newLevel,
       },
     };
+
+    // Queue sync to Supabase
+    this.enqueueSync({ op: 'create_task', payload: task });
+
     this.notify();
+
+    void logEventToBackend('task_created', 'productivity', newTask.title, undefined, {
+      priority: newTask.priority,
+    }, 'web');
   }
 
   public updateTask(id: string, updates: Partial<Task>) {
+    const existing = this.state.tasks.find((t) => t.id === id);
+    if (!existing) throw new Error(`Task ${id} not found`);
+
     this.state = {
       ...this.state,
       tasks: this.state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     };
+
+    this.enqueueSync({ op: 'update_task', payload: { id, updates } });
     this.notify();
   }
 
   public moveTask(taskId: string, status: TaskStatus) {
+    const existing = this.state.tasks.find((t) => t.id === taskId);
+    if (!existing) throw new Error(`Task ${taskId} not found`);
+
+    const isDone = status === 'done';
+    const alreadyDone = existing.status === 'done';
+
     this.state = {
       ...this.state,
       tasks: this.state.tasks.map((t) => {
         if (t.id === taskId) {
-          const isDone = status === 'done';
           return {
             ...t,
             status,
@@ -743,11 +888,20 @@ class StoreEngine {
         }
         return t;
       }),
-      user: {
-        ...this.state.user,
-        xp: status === 'done' ? this.state.user.xp + 25 : this.state.user.xp,
-      },
     };
+
+    // XP only if transitioning TO done (not already done)
+    if (isDone && !alreadyDone) {
+      const xpReward = calculateTaskXP(existing.priority);
+      const newXp = this.state.user.xp + xpReward;
+      const newLevel = calculateLevel(newXp);
+      this.state = {
+        ...this.state,
+        user: { ...this.state.user, xp: newXp, level: newLevel },
+      };
+    }
+
+    this.enqueueSync({ op: 'move_task', payload: { taskId, status } });
     this.notify();
   }
 
@@ -756,46 +910,63 @@ class StoreEngine {
       ...this.state,
       tasks: this.state.tasks.filter((t) => t.id !== id),
     };
+    this.enqueueSync({ op: 'delete_task', payload: { id } });
     this.notify();
   }
 
-  // --- Habits CRUD ---
+  /* ---------- Habits CRUD ---------- */
+
   public toggleHabit(id: string, date: string = getTodayIso()) {
+    const habit = this.state.habits.find((h) => h.id === id);
+    if (!habit) throw new Error(`Habit ${id} not found`);
+
+    const exists = habit.completedDates.includes(date);
+    const isCompleted = !exists;
+
     this.state = {
       ...this.state,
       habits: this.state.habits.map((h) => {
         if (h.id === id) {
-          const exists = h.completedDates.includes(date);
           const nextDates = exists
             ? h.completedDates.filter((d) => d !== date)
             : [...h.completedDates, date];
           const newStreak = exists ? Math.max(0, h.streak - 1) : h.streak + 1;
           const best = Math.max(h.bestStreak, newStreak);
-          return {
-            ...h,
-            completedDates: nextDates,
-            streak: newStreak,
-            bestStreak: best,
-          };
+          return { ...h, completedDates: nextDates, streak: newStreak, bestStreak: best };
         }
         return h;
       }),
-      user: {
-        ...this.state.user,
-        xp: this.state.user.xp + 15,
-      },
     };
+
+    if (isCompleted) {
+      const xpReward = calculateXP('habit_done');
+      const streakXP = calculateStreakXP(habit.streak + 1);
+      const newXp = this.state.user.xp + xpReward + streakXP;
+      const newLevel = calculateLevel(newXp);
+      this.state = {
+        ...this.state,
+        user: { ...this.state.user, xp: newXp, level: newLevel },
+      };
+    }
+
+    this.enqueueSync({ op: 'toggle_habit', payload: { id, date } });
     this.notify();
   }
 
   public addHabit(habit: Omit<Habit, 'id' | 'streak' | 'bestStreak' | 'completedDates'>) {
+    const validation = validateInput(createHabitSchema, habit);
+    if (!validation.ok) {
+      throw new Error(`Habit validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+    }
+
     const newHabit: Habit = {
-      ...habit,
+      ...validation.data,
       id: `habit-${Date.now()}`,
       streak: 0,
       bestStreak: 0,
       completedDates: [],
     };
+
     this.state = {
       ...this.state,
       habits: [...this.state.habits, newHabit],
@@ -811,19 +982,14 @@ class StoreEngine {
     this.notify();
   }
 
-  // --- Tracker Excel Table CRUD ---
+  /* ---------- Trackers ---------- */
+
   public updateTrackerCell(id: string, date: string, value: number) {
     this.state = {
       ...this.state,
       trackers: this.state.trackers.map((t) => {
         if (t.id === id) {
-          return {
-            ...t,
-            values: {
-              ...t.values,
-              [date]: value,
-            },
-          };
+          return { ...t, values: { ...t.values, [date]: value } };
         }
         return t;
       }),
@@ -837,10 +1003,7 @@ class StoreEngine {
       id: `track-${Date.now()}`,
       values: {},
     };
-    this.state = {
-      ...this.state,
-      trackers: [...this.state.trackers, newTracker],
-    };
+    this.state = { ...this.state, trackers: [...this.state.trackers, newTracker] };
     this.notify();
   }
 
@@ -852,13 +1015,16 @@ class StoreEngine {
     this.notify();
   }
 
-  // --- Finance CRUD ---
+  /* ---------- Finance CRUD ---------- */
+
   public addTransaction(tx: Omit<Transaction, 'id'>) {
-    const newTx: Transaction = {
-      ...tx,
-      id: `tx-${Date.now()}`,
-    };
-    // Also update budget if expense
+    const validation = validateInput(createTransactionSchema, tx);
+    if (!validation.ok) {
+      throw new Error(`Transaction validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+    }
+
+    const newTx: Transaction = { ...validation.data, id: `tx-${Date.now()}` };
+
     let nextBudgets = [...this.state.budgets];
     if (tx.type === 'expense') {
       nextBudgets = nextBudgets.map((b) => {
@@ -869,11 +1035,22 @@ class StoreEngine {
       });
     }
 
+    const xpReward = calculateXP('budget_under');
+    const newXp = this.state.user.xp + xpReward;
+    const newLevel = calculateLevel(newXp);
+
     this.state = {
       ...this.state,
       transactions: [newTx, ...this.state.transactions],
       budgets: nextBudgets,
+      user: { ...this.state.user, xp: newXp, level: newLevel },
     };
+
+    void logEventToBackend('finance_transaction', 'finance', tx.description || tx.category, undefined, {
+      amount: tx.amount,
+      type: tx.type,
+      category: tx.category,
+    });
     this.notify();
   }
 
@@ -886,15 +1063,12 @@ class StoreEngine {
   }
 
   public addBudget(budget: Omit<Budget, 'id' | 'spent'>) {
-    const newBudget: Budget = {
-      ...budget,
-      id: `b-${Date.now()}`,
-      spent: 0,
-    };
-    this.state = {
-      ...this.state,
-      budgets: [...this.state.budgets, newBudget],
-    };
+    const validation = validateInput(createBudgetCategorySchema, budget);
+    if (!validation.ok) {
+      throw new Error(`Budget validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+    }
+    const newBudget: Budget = { ...validation.data, id: `b-${Date.now()}`, spent: 0 };
+    this.state = { ...this.state, budgets: [...this.state.budgets, newBudget] };
     this.notify();
   }
 
@@ -907,77 +1081,67 @@ class StoreEngine {
   }
 
   public depositSavings(id: string, amount: number) {
+    const newXp = this.state.user.xp + calculateXP('savings_contribution');
+    const newLevel = calculateLevel(newXp);
+
     this.state = {
       ...this.state,
       savings: this.state.savings.map((s) => {
-        if (s.id === id) {
-          return {
-            ...s,
-            currentAmount: s.currentAmount + amount,
-          };
-        }
+        if (s.id === id) return { ...s, currentAmount: s.currentAmount + amount };
         return s;
       }),
-      user: {
-        ...this.state.user,
-        xp: this.state.user.xp + 20,
-      },
+      user: { ...this.state.user, xp: newXp, level: newLevel },
     };
     this.notify();
   }
 
   public addSavingsGoal(goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) {
-    const newGoal: SavingsGoal = {
-      ...goal,
-      id: `save-${Date.now()}`,
-      currentAmount: 0,
-    };
-    this.state = {
-      ...this.state,
-      savings: [...this.state.savings, newGoal],
-    };
+    const validation = validateInput(createSavingsGoalSchema, goal);
+    if (!validation.ok) {
+      throw new Error(`Savings goal validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+    }
+    const newGoal: SavingsGoal = { ...validation.data, id: `save-${Date.now()}`, currentAmount: 0 };
+    this.state = { ...this.state, savings: [...this.state.savings, newGoal] };
     this.notify();
   }
 
-  // --- Study SM-2 Flashcards CRUD ---
+  /* ---------- Study / SM-2 ---------- */
+
   public rateCard(cardId: string, quality: number) {
+    const validation = validateInput(sm2InputSchema, { quality, easinessFactor: 2.5, interval: 1, repetitions: 0 });
+    if (!validation.ok) {
+      throw new Error(`SM-2 validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+    }
+
+    const card = this.state.studyCards.find((c) => c.id === cardId);
+    if (!card) throw new Error(`Card ${cardId} not found`);
+
+    const sm2Result = calculateSM2({
+      quality,
+      easinessFactor: card.easinessFactor,
+      interval: card.interval,
+      repetitions: card.repetitions,
+    });
+
     this.state = {
       ...this.state,
-      studyCards: this.state.studyCards.map((card) => {
-        if (card.id === cardId) {
-          const q = Math.max(0, Math.min(5, quality));
-          let { interval, repetitions, easinessFactor } = card;
-
-          if (q >= 3) {
-            if (repetitions === 0) interval = 1;
-            else if (repetitions === 1) interval = 6;
-            else interval = Math.round(interval * easinessFactor);
-            repetitions += 1;
-          } else {
-            repetitions = 0;
-            interval = 1;
-          }
-
-          const newEF = easinessFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
-          easinessFactor = Math.max(1.3, Math.round(newEF * 100) / 100);
-
-          const nextDate = new Date();
-          nextDate.setDate(nextDate.getDate() + interval);
-
+      studyCards: this.state.studyCards.map((c) => {
+        if (c.id === cardId) {
           return {
-            ...card,
-            easinessFactor,
-            interval,
-            repetitions,
-            lastQuality: q,
-            nextReviewDate: nextDate.toISOString().split('T')[0],
+            ...c,
+            easinessFactor: sm2Result.easinessFactor,
+            interval: sm2Result.interval,
+            repetitions: sm2Result.repetitions,
+            lastQuality: quality,
+            nextReviewDate: sm2Result.nextReviewDate.toISOString().split('T')[0],
           };
         }
-        return card;
+        return c;
       }),
       user: {
         ...this.state.user,
-        xp: this.state.user.xp + 15,
+        xp: this.state.user.xp + calculateXP('flashcard_review'),
+        level: calculateLevel(this.state.user.xp + calculateXP('flashcard_review')),
       },
     };
     this.notify();
@@ -992,22 +1156,13 @@ class StoreEngine {
       repetitions: 0,
       nextReviewDate: getTodayIso(),
     };
-    this.state = {
-      ...this.state,
-      studyCards: [...this.state.studyCards, newCard],
-    };
+    this.state = { ...this.state, studyCards: [...this.state.studyCards, newCard] };
     this.notify();
   }
 
   public addStudyResource(resource: Omit<StudyResource, 'id'>) {
-    const newRes: StudyResource = {
-      ...resource,
-      id: `res-${Date.now()}`,
-    };
-    this.state = {
-      ...this.state,
-      studyResources: [...this.state.studyResources, newRes],
-    };
+    const newRes: StudyResource = { ...resource, id: `res-${Date.now()}` };
+    this.state = { ...this.state, studyResources: [...this.state.studyResources, newRes] };
     this.notify();
   }
 
@@ -1019,34 +1174,26 @@ class StoreEngine {
     this.notify();
   }
 
-  // --- Kaizen CRUD ---
+  /* ---------- Kaizen ---------- */
+
   public addKaizenEntry(entry: Omit<KaizenEntry, 'id' | 'date'>) {
-    const newEntry: KaizenEntry = {
-      ...entry,
-      id: `k-${Date.now()}`,
-      date: getTodayIso(),
-    };
+    const newEntry: KaizenEntry = { ...entry, id: `k-${Date.now()}`, date: getTodayIso() };
+    const newXp = this.state.user.xp + calculateXP('kaizen_completed');
+    const newLevel = calculateLevel(newXp);
+
     this.state = {
       ...this.state,
       kaizenEntries: [newEntry, ...this.state.kaizenEntries],
-      user: {
-        ...this.state.user,
-        xp: this.state.user.xp + 50,
-      },
+      user: { ...this.state.user, xp: newXp, level: newLevel },
     };
     this.notify();
   }
 
-  // --- Goals CRUD ---
+  /* ---------- Goals ---------- */
+
   public addGoal(goal: Omit<Goal, 'id'>) {
-    const newGoal: Goal = {
-      ...goal,
-      id: `g-${Date.now()}`,
-    };
-    this.state = {
-      ...this.state,
-      goals: [...this.state.goals, newGoal],
-    };
+    const newGoal: Goal = { ...goal, id: `g-${Date.now()}` };
+    this.state = { ...this.state, goals: [...this.state.goals, newGoal] };
     this.notify();
   }
 
@@ -1070,14 +1217,8 @@ class StoreEngine {
             }
             return kr;
           });
-          const totalProgress = Math.round(
-            nextKRs.reduce((sum, kr) => sum + kr.progress, 0) / nextKRs.length
-          );
-          return {
-            ...g,
-            keyResults: nextKRs,
-            progress: totalProgress,
-          };
+          const totalProgress = Math.round(nextKRs.reduce((sum, kr) => sum + kr.progress, 0) / nextKRs.length);
+          return { ...g, keyResults: nextKRs, progress: totalProgress };
         }
         return g;
       }),
@@ -1085,7 +1226,8 @@ class StoreEngine {
     this.notify();
   }
 
-  // --- Health CRUD ---
+  /* ---------- Health ---------- */
+
   public logHealth(date: string, partial: Partial<HealthLog>) {
     const current = this.state.healthLogs[date] || {
       date,
@@ -1100,16 +1242,17 @@ class StoreEngine {
       ...this.state,
       healthLogs: {
         ...this.state.healthLogs,
-        [date]: {
-          ...current,
-          ...partial,
-        },
+        [date]: { ...current, ...partial },
       },
     };
+
+    // Recalculate life score after health log change
+    this.recalculateUserMetrics();
     this.notify();
   }
 
-  // --- Notifications ---
+  /* ---------- Notifications ---------- */
+
   public markNotificationRead(id: string) {
     this.state = {
       ...this.state,
@@ -1127,14 +1270,12 @@ class StoreEngine {
   }
 
   public clearAllNotifications() {
-    this.state = {
-      ...this.state,
-      notifications: [],
-    };
+    this.state = { ...this.state, notifications: [] };
     this.notify();
   }
 
-  // --- Issues Diagnostics ---
+  /* ---------- Issues ---------- */
+
   public resolveIssue(id: string) {
     this.state = {
       ...this.state,
@@ -1143,7 +1284,25 @@ class StoreEngine {
     this.notify();
   }
 
-  // --- Database Reset & Backup ---
+  /* ---------- Sync queue ---------- */
+
+  private enqueueSync(op: SyncOperation['op'], payload: unknown) {
+    const item: SyncQueueItem = {
+      id: `sync-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      op,
+      payload,
+      createdAt: new Date().toISOString(),
+      retries: 0,
+    };
+    const queue = loadSyncQueue();
+    queue.push(item);
+    saveSyncQueue(queue);
+    // Trigger immediate background sync
+    void this.processSyncQueue();
+  }
+
+  /* ---------- Reset / Export / Import ---------- */
+
   public resetToDefaults() {
     this.state = INITIAL_DATABASE;
     this.notify();
@@ -1158,6 +1317,7 @@ class StoreEngine {
       const parsed = JSON.parse(jsonString);
       if (parsed && typeof parsed === 'object') {
         this.state = { ...INITIAL_DATABASE, ...parsed };
+        this.recalculateUserMetrics();
         this.notify();
         return true;
       }
@@ -1169,14 +1329,22 @@ class StoreEngine {
 
   public importData(data: DatabaseState) {
     this.state = data;
+    this.recalculateUserMetrics();
     this.notify();
   }
+
+  public destroy() {
+    this.stopSyncTimer();
+  }
 }
+
+/* ============================================
+   Singleton + React hook
+   ============================================ */
 
 export const store = new StoreEngine();
 export const storeEngine = store;
 
-// React hook for consuming reactive store
 export function useLifeOS() {
   const [state, setState] = useState<DatabaseState>(store.getState());
 
@@ -1187,39 +1355,130 @@ export function useLifeOS() {
     return unsubscribe;
   }, []);
 
+  /* Derived helpers (rules-driven) */
+  const user = state.user;
+
+  /* Tasks */
+  const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => store.addTask(task);
+  const updateTask = (id: string, updates: Partial<Task>) => store.updateTask(id, updates);
+  const moveTask = (taskId: string, status: TaskStatus) => store.moveTask(taskId, status);
+  const deleteTask = (id: string) => store.deleteTask(id);
+
+  /* Habits */
+  const toggleHabit = (id: string, date?: string) => store.toggleHabit(id, date);
+  const addHabit = (habit: Omit<Habit, 'id' | 'streak' | 'bestStreak' | 'completedDates'>) =>
+    store.addHabit(habit);
+  const deleteHabit = (id: string) => store.deleteHabit(id);
+
+  /* Trackers */
+  const updateTrackerCell = (id: string, date: string, value: number) =>
+    store.updateTrackerCell(id, date, value);
+  const addTracker = (tracker: Omit<TrackerRow, 'id' | 'values'>) => store.addTracker(tracker);
+  const deleteTracker = (id: string) => store.deleteTracker(id);
+
+  /* Finance */
+  const addTransaction = (tx: Omit<Transaction, 'id'>) => store.addTransaction(tx);
+  const deleteTransaction = (id: string) => store.deleteTransaction(id);
+  const addBudget = (budget: Omit<Budget, 'id' | 'spent'>) => store.addBudget(budget);
+  const updateBudget = (id: string, updates: Partial<Budget>) => store.updateBudget(id, updates);
+  const depositSavings = (id: string, amount: number) => store.depositSavings(id, amount);
+  const addSavingsGoal = (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) =>
+    store.addSavingsGoal(goal);
+
+  /* Study */
+  const rateCard = (cardId: string, quality: number) => store.rateCard(cardId, quality);
+  const addStudyCard = (card: Omit<StudyCard, 'id' | 'easinessFactor' | 'interval' | 'repetitions' | 'nextReviewDate'>) =>
+    store.addStudyCard(card);
+  const addStudyResource = (res: Omit<StudyResource, 'id'>) => store.addStudyResource(res);
+  const updateStudyResource = (id: string, updates: Partial<StudyResource>) =>
+    store.updateStudyResource(id, updates);
+
+  /* Kaizen */
+  const addKaizenEntry = (entry: Omit<KaizenEntry, 'id' | 'date'>) => store.addKaizenEntry(entry);
+
+  /* Goals */
+  const addGoal = (goal: Omit<Goal, 'id'>) => store.addGoal(goal);
+  const updateGoalProgress = (goalId: string, progress: number) => store.updateGoalProgress(goalId, progress);
+  const toggleKeyResult = (goalId: string, krId: string) => store.toggleKeyResult(goalId, krId);
+
+  /* Health */
+  const logHealth = (date: string, partial: Partial<HealthLog>) => store.logHealth(date, partial);
+
+  /* Notifications */
+  const markNotificationRead = (id: string) => store.markNotificationRead(id);
+  const markAllNotificationsRead = () => store.markAllNotificationsRead();
+  const clearAllNotifications = () => store.clearAllNotifications();
+
+  /* Issues */
+  const resolveIssue = (id: string) => store.resolveIssue(id);
+
+  /* Data utils */
+  const resetToDefaults = () => store.resetToDefaults();
+  const exportJSON = () => store.exportJSON();
+  const importJSON = (jsonString: string) => store.importJSON(jsonString);
+  const importData = (data: DatabaseState) => store.importData(data);
+
   return {
     ...state,
-    addTask: (task: Omit<Task, 'id' | 'createdAt'>) => store.addTask(task),
-    updateTask: (id: string, updates: Partial<Task>) => store.updateTask(id, updates),
-    moveTask: (taskId: string, status: TaskStatus) => store.moveTask(taskId, status),
-    deleteTask: (id: string) => store.deleteTask(id),
-    toggleHabit: (id: string, date?: string) => store.toggleHabit(id, date),
-    addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'bestStreak' | 'completedDates'>) => store.addHabit(habit),
-    deleteHabit: (id: string) => store.deleteHabit(id),
-    updateTrackerCell: (id: string, date: string, value: number) => store.updateTrackerCell(id, date, value),
-    addTracker: (tracker: Omit<TrackerRow, 'id' | 'values'>) => store.addTracker(tracker),
-    deleteTracker: (id: string) => store.deleteTracker(id),
-    addTransaction: (tx: Omit<Transaction, 'id'>) => store.addTransaction(tx),
-    deleteTransaction: (id: string) => store.deleteTransaction(id),
-    addBudget: (budget: Omit<Budget, 'id' | 'spent'>) => store.addBudget(budget),
-    updateBudget: (id: string, updates: Partial<Budget>) => store.updateBudget(id, updates),
-    depositSavings: (id: string, amount: number) => store.depositSavings(id, amount),
-    addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) => store.addSavingsGoal(goal),
-    rateCard: (cardId: string, quality: number) => store.rateCard(cardId, quality),
-    addStudyCard: (card: Omit<StudyCard, 'id' | 'easinessFactor' | 'interval' | 'repetitions' | 'nextReviewDate'>) =>
-      store.addStudyCard(card),
-    addStudyResource: (res: Omit<StudyResource, 'id'>) => store.addStudyResource(res),
-    updateStudyResource: (id: string, updates: Partial<StudyResource>) => store.updateStudyResource(id, updates),
-    addKaizenEntry: (entry: Omit<KaizenEntry, 'id' | 'date'>) => store.addKaizenEntry(entry),
-    addGoal: (goal: Omit<Goal, 'id'>) => store.addGoal(goal),
-    updateGoalProgress: (goalId: string, progress: number) => store.updateGoalProgress(goalId, progress),
-    toggleKeyResult: (goalId: string, krId: string) => store.toggleKeyResult(goalId, krId),
-    logHealth: (date: string, partial: Partial<HealthLog>) => store.logHealth(date, partial),
-    markNotificationRead: (id: string) => store.markNotificationRead(id),
-    markAllNotificationsRead: () => store.markAllNotificationsRead(),
-    clearAllNotifications: () => store.clearAllNotifications(),
-    resolveIssue: (id: string) => store.resolveIssue(id),
-    resetToDefaults: () => store.resetToDefaults(),
-    importData: (data: DatabaseState) => store.importData(data),
+    user,
+    addTask,
+    updateTask,
+    moveTask,
+    deleteTask,
+    toggleHabit,
+    addHabit,
+    deleteHabit,
+    updateTrackerCell,
+    addTracker,
+    deleteTracker,
+    addTransaction,
+    deleteTransaction,
+    addBudget,
+    updateBudget,
+    depositSavings,
+    addSavingsGoal,
+    rateCard,
+    addStudyCard,
+    addStudyResource,
+    updateStudyResource,
+    addKaizenEntry,
+    addGoal,
+    updateGoalProgress,
+    toggleKeyResult,
+    logHealth,
+    markNotificationRead,
+    markAllNotificationsRead,
+    clearAllNotifications,
+    resolveIssue,
+    resetToDefaults,
+    exportJSON,
+    importJSON,
+    importData,
   };
+}
+
+/* ============================================
+   Backend logging (best-effort, silent fail)
+   ============================================ */
+
+async function logEventToBackend(
+  eventType: string,
+  category: string,
+  title: string,
+  userId: string = 'default_user',
+  context?: Record<string, any>,
+  source: string = 'web'
+) {
+  try {
+    await eventsApi.create({
+      user_id: userId,
+      event_type: eventType,
+      event_category: category,
+      title,
+      context: context || {},
+      source,
+    });
+  } catch {
+    // Silent fail: local state still updates, backend sync is best-effort
+  }
 }

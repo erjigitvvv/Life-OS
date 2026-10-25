@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLifeOS, KaizenEntry } from '@/lib/store';
+import { useLifeOS } from '@/lib/store';
+import { KaizenEntry } from '@lifeos/shared';
 import { useTranslations } from 'next-intl';
 import {
   TrendingUp,

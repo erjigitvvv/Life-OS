@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLifeOS, TrackerRow } from '@/lib/store';
+import { useLifeOS } from '@/lib/store';
+import { TrackerRow } from '@lifeos/shared';
 import { useTranslations } from 'next-intl';
 import {
   Table,
@@ -24,10 +25,20 @@ export default function TrackerTablePage() {
   const t = useTranslations('tracker');
   const { trackers, updateTrackerCell, addTracker, deleteTracker } = useLifeOS();
 
+  const [activeTab, setActiveTab] = useState<'all' | 'sleep' | 'water' | 'study' | 'workout' | 'tasks'>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newTrackerName, setNewTrackerName] = useState('');
   const [newTrackerUnit, setNewTrackerUnit] = useState('soat');
   const [newTrackerGoal, setNewTrackerGoal] = useState<number>(5);
+
+  const TRACKER_TABS: { id: 'all' | 'sleep' | 'water' | 'study' | 'workout' | 'tasks'; label: string; icon: any; matchKeywords: string[] }[] = [
+    { id: 'all', label: 'Barchasi', icon: Table, matchKeywords: [] },
+    { id: 'sleep', label: 'Uyqu & Dam', icon: Moon, matchKeywords: ['uyqu', 'sleep'] },
+    { id: 'water', label: 'Suv & Salomatlik', icon: Droplets, matchKeywords: ['suv', 'water'] },
+    { id: 'study', label: "Ilm & O'qish", icon: BookOpen, matchKeywords: ['ilm', 'study', "o'qish"] },
+    { id: 'workout', label: "Mashg'ulot", icon: Dumbbell, matchKeywords: ['mashq', 'workout'] },
+    { id: 'tasks', label: 'Diqqat & Ish', icon: CheckCircle, matchKeywords: ['vazifa', 'task', 'diqqat'] },
+  ];
 
   // Generate 7 days labels for current week
   const getDaysArray = () => {
@@ -89,6 +100,14 @@ export default function TrackerTablePage() {
     return <Table className="w-4 h-4 text-primary" />;
   };
 
+  const currentTabDef = TRACKER_TABS.find((t) => t.id === activeTab);
+  const displayedTrackers =
+    activeTab === 'all'
+      ? trackers
+      : trackers.filter((tr) =>
+          currentTabDef?.matchKeywords.some((kw) => tr.name.toLowerCase().includes(kw))
+        );
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -116,15 +135,54 @@ export default function TrackerTablePage() {
         </button>
       </div>
 
+      {/* Apple-style Segmented Control / Tabs */}
+      <div className="bg-slate-100/90 dark:bg-slate-900/70 p-1.5 rounded-2xl border border-border/80 backdrop-blur-md flex items-center gap-1.5 overflow-x-auto shadow-xs">
+        {TRACKER_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          const matchCount = tab.id === 'all'
+            ? trackers.length
+            : trackers.filter((t) => tab.matchKeywords.some((kw) => t.name.toLowerCase().includes(kw))).length;
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-300 select-none ${
+                isActive
+                  ? 'bg-white dark:bg-card text-foreground shadow-sm shadow-black/5 ring-1 ring-border font-bold scale-[1.01]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/40 dark:hover:bg-slate-800/40'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span>{tab.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono transition-colors ${
+                  isActive
+                    ? 'bg-primary/10 text-primary font-bold'
+                    : 'bg-slate-200/60 dark:bg-slate-800 text-muted-foreground'
+                }`}
+              >
+                {matchCount}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Excel Spreadsheet Grid Table */}
-      <div className="bg-white dark:bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-card border border-border rounded-2xl shadow-sm overflow-hidden animate-fade-in">
         <div className="p-4 bg-slate-50/70 dark:bg-slate-900/40 border-b border-border flex items-center justify-between text-xs font-semibold">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-foreground">Haftalik Interaktiv Kataklar (Hafta kunlari)</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-foreground">
+              {activeTab === 'all'
+                ? 'Barcha Trackerlar (Excel Setkasi)'
+                : `${TRACKER_TABS.find((t) => t.id === activeTab)?.label} — Interaktiv Jadval`}
+            </span>
           </div>
-          <span className="text-muted-foreground font-mono text-[11px]">
-            ⚡ Katakchani bosib to'g'ridan-to'g'ri qiymat kiriting
+          <span className="text-muted-foreground font-mono text-[11px] hidden sm:inline-block">
+            ⚡ Katakchani bosib to'g'ridan-to'g'ri qiymat kiriting (SPA instant-save)
           </span>
         </div>
 
@@ -157,22 +215,38 @@ export default function TrackerTablePage() {
             </thead>
 
             <tbody className="divide-y divide-border/60">
-              {trackers.map((tracker) => {
-                let rowSum = 0;
-                let recordedDays = 0;
+              {displayedTrackers.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                    <p className="text-xs font-semibold">Ushbu toifaga tegishli tracker topilmadi.</p>
+                    <button
+                      onClick={() => {
+                        setNewTrackerName(currentTabDef?.label || '');
+                        setIsAddModalOpen(true);
+                      }}
+                      className="mt-2 text-xs text-primary font-bold hover:underline"
+                    >
+                      + Yangi {currentTabDef?.label} trackeri qo'shish
+                    </button>
+                  </td>
+                </tr>
+              ) : (
+                displayedTrackers.map((tracker) => {
+                  let rowSum = 0;
+                  let recordedDays = 0;
 
-                weekDays.forEach((d) => {
-                  const val = tracker.values[d.iso];
-                  if (typeof val === 'number') {
-                    rowSum += val;
-                    recordedDays += 1;
-                  }
-                });
+                  weekDays.forEach((d) => {
+                    const val = tracker.values[d.iso];
+                    if (typeof val === 'number') {
+                      rowSum += val;
+                      recordedDays += 1;
+                    }
+                  });
 
-                const average = recordedDays > 0 ? (rowSum / recordedDays).toFixed(1) : '0';
+                  const average = recordedDays > 0 ? (rowSum / recordedDays).toFixed(1) : '0';
 
-                return (
-                  <tr key={tracker.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group">
+                  return (
+                    <tr key={tracker.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group">
                     {/* Tracker Name */}
                     <td className="py-3 px-4 font-semibold text-foreground border-r border-border/60 flex items-center gap-2.5">
                       <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0">
@@ -193,8 +267,10 @@ export default function TrackerTablePage() {
 
                     {/* 7 Days In-Cell Editable Cells */}
                     {weekDays.map((d) => {
-                      const currentVal = tracker.values[d.iso] ?? '';
-                      const isOverGoal = typeof currentVal === 'number' && currentVal >= tracker.goal;
+                      const rawVal = tracker.values[d.iso];
+                      const hasVal = typeof rawVal === 'number';
+                      const currentVal = hasVal ? rawVal : '';
+                      const isOverGoal = hasVal && rawVal >= tracker.goal;
 
                       return (
                         <td
@@ -212,7 +288,7 @@ export default function TrackerTablePage() {
                             className={`w-full py-1.5 px-1 text-center font-mono text-xs rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 ${
                               isOverGoal
                                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-bold border-emerald-200'
-                                : currentVal !== ''
+                                : hasVal
                                 ? 'bg-white dark:bg-card border-border text-foreground font-semibold'
                                 : 'bg-transparent border-transparent hover:border-border/60 text-muted-foreground'
                             }`}
@@ -241,15 +317,15 @@ export default function TrackerTablePage() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Dynamic Statistical Charts & Trends Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {trackers.map((tracker) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+        {displayedTrackers.map((tracker) => {
           return (
             <div
               key={tracker.id}

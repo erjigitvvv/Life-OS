@@ -1,7 +1,7 @@
 # Loyiha Holati (Status & Progress)
 
-> **So'nggi yangilanish**: 2026-10-24  
-> **Joriy Branch**: `main` va `chore/architecture-governance`
+> **So'nggi yangilanish**: 2026-10-26  
+> **Joriy Branch**: `main`
 
 ---
 
@@ -10,12 +10,12 @@
 | Qism | Holat | Izoh |
 |---|---|---|
 | **Yagona Haqiqat Manbai (SSOT)** | 🟢 Tayyor | `AGENTS.md`, `docs/DECISIONS.md`, `docs/STATUS.md` joriy qilindi |
-| **Frontend Routing** | 🟢 Tozalandi | Dublikat `app/(dashboard)` va ziddiyatli `apps/web/app/` o'chirildi |
-| **Paketlar (`packages/rules`)** | 🟢 Tekshirildi | XP, Level (matematik xato tuzatildi), Life Score, SM-2 va 29 ta unit-test 100% o'tdi |
+| **Frontend Routing & UI** | 🟢 200 OK | Bugun (yaxlit Kunlik Markaz & Statistika), Tracker (Apple Segmented Control), Raqamli Egizak integratsiyasi to'liq ishga tushdi |
+| **Paketlar (`packages/rules`, `shared`)** | 🟢 100% O'tdi | Barcha 29 ta unit-testlar muvaffaqiyatli o'tdi, build & subpath exportlar to'g'rilandi |
 | **Baza Migratsiyalari** | 🟡 Yozilgan | Supabase uchun 10 ta SQL migratsiya mavjud, local/cloud Supabase ga bog'lash kerak |
-| **CI / CD Pipeline** | 🟢 Tayyor | `.github/workflows/ci.yml` ishga tushirildi |
+| **CI / CD Pipeline** | 🟢 Tayyor | `.github/workflows/ci.yml` va testlar avtomatlashtirilgan |
+| **Raqamli Egizak (Digital Twin)** | 🟢 Tayyor | AI shaxsiy ko'chirma, interaktiv tahliliy chat va kognitiv metrikalar sahifasi yaratildi |
 | **Vertikal Kesim (Tasks)** | ⏳ Navbatda | Auth ➔ DB ➔ UI ➔ Test zanjirini to'liq bog'lash |
-| **AI Servislari** | 🟡 Tuzatildi | `ai_coach.py` dagi `userMessage` sintaktik xatosi tuzatildi; keyingi qadamda Claude SDK ga o'tiladi |
 
 ---
 

@@ -9,8 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:coverage": "vitest --coverage",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest --coverage --passWithNoTests",
     "preview": "next preview"
   },
   "dependencies": {

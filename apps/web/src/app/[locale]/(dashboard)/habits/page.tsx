@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLifeOS, Habit } from '@/lib/store';
+import { useLifeOS } from '@/lib/store';
+import { Habit } from '@lifeos/shared';
 import { useTranslations } from 'next-intl';
 import {
   CheckSquare,

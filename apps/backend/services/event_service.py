@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from models.event import EventModel
 from schemas.event import EventCreate
@@ -88,7 +88,7 @@ class EventService:
         ))
 
     def get_recent_events(self, user_id: str, days: int = 30) -> List[EventModel]:
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         return self.db.query(EventModel).filter(
             EventModel.user_id == user_id,
             EventModel.created_at >= cutoff

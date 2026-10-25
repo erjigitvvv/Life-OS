@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLifeOS, TaskStatus, TaskPriority, Task } from '@/lib/store';
+import { useLifeOS } from '@/lib/store';
+import { TaskStatus, TaskPriority, Task } from '@lifeos/shared';
 import { useTranslations } from 'next-intl';
 import {
   Kanban,

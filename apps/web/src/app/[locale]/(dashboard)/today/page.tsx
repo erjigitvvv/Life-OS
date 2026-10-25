@@ -27,7 +27,6 @@ import Link from 'next/link';
 export default function TodayPage() {
   const t = useTranslations('dashboard');
   const tNav = useTranslations('nav');
-  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
@@ -81,40 +80,31 @@ export default function TodayPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header with View Mode Switcher */}
+      {/* Header with Unified Daily Center & Daily Stats Title */}
       <div className="bg-white dark:bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-              {tNav('dailyCenter')}
+              {tNav('dailyCenter')} & {tNav('dailyStats')}
             </h1>
-            <span className="text-xs bg-primary/10 text-primary font-bold px-2.5 py-0.5 rounded-full">
-              Live DB
+            <span className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              Yaxlit Boshqaruv
             </span>
           </div>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-primary" />
-            {viewMode === 'daily' && 'Bugungi asosiy vazifalar, odatlar va metrikalar balansi'}
-            {viewMode === 'weekly' && 'Ushbu haftalik umumiy mahsuldorlik va o\'sish sur\'ati'}
-            {viewMode === 'monthly' && 'Oylik maqsadlar, moliyaviy sarhisob va umumiy dinamika'}
+            Bugungi kunlik markaz vazifalari, odatlar va real vaqt statistikasi yagona sahifada
           </p>
         </div>
 
-        {/* View Switcher: Daily, Weekly, Monthly */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-border/60">
-          {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                viewMode === mode
-                  ? 'bg-white dark:bg-card text-primary shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {t(mode)}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAddingTask(!isAddingTask)}
+            className="px-4 py-2 text-xs font-semibold bg-primary text-white rounded-xl shadow-sm hover:bg-primary/90 active:scale-95 transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('addTask')}</span>
+          </button>
         </div>
       </div>
 
