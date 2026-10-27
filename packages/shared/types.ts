@@ -32,6 +32,219 @@ export type GoalStatus = 'active' | 'completed' | 'paused' | 'abandoned';
  * Priority levels
  */
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskPriority = Priority;
+
+/* ============================================
+   Tracker Types (Numeric, Boolean, Time Range)
+   ============================================ */
+
+export type TrackerType = 'numeric' | 'boolean' | 'time_range';
+
+export interface TimeRangeValue {
+  start: string; // e.g. "22:00"
+  end: string;   // e.g. "07:00"
+  durationHours: number; // e.g. 9.0
+}
+
+export type TrackerValue = number | boolean | TimeRangeValue;
+
+export interface TrackerRow {
+  id: string;
+  name: string;
+  type?: TrackerType;
+  icon?: string;
+  unit: string;
+  goal: number;
+  values: Record<string, any>;
+}
+
+/* ============================================
+   Core LifeOS Entities
+   ============================================ */
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  color?: string;
+  icon?: string;
+  tags: string[];
+  dueDate?: string;
+  createdAt: string;
+  completedAt?: string;
+  completed_at?: string;
+  track_id?: string;
+}
+
+export interface Habit {
+  id: string;
+  name: string;
+  targetDays: number;
+  color?: string;
+  icon?: string;
+  streak: number;
+  bestStreak: number;
+  completedDates: string[];
+  reminderTime: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening' | string;
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface Transaction {
+  id: string;
+  type: 'income' | 'expense';
+  category: string;
+  amount: number;
+  description: string;
+  date: string;
+}
+
+export interface Budget {
+  id: string;
+  category: string;
+  limit: number;
+  spent: number;
+  month: string;
+}
+
+export interface Wallet {
+  id: string;
+  name: string;
+  type: 'card' | 'cash' | 'savings';
+  balance: number;
+  color: string;
+  cardNumber?: string;
+  icon?: string;
+}
+
+export interface BudgetCategoryItem {
+  id: string;
+  category: string;
+  group?: 'essential' | 'growth' | 'lifestyle' | 'savings';
+  planned: number;
+  actual: number;
+  isPaid: boolean;
+  dailyExpenses: Record<string, number>;
+  color: string;
+  icon: string;
+}
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  icon?: string;
+}
+
+export interface StudyCard {
+  id: string;
+  deck: string;
+  front: string;
+  back: string;
+  easinessFactor: number;
+  interval: number;
+  repetitions: number;
+  nextReviewDate: string;
+  lastQuality?: number;
+}
+
+export interface StudyResource {
+  id: string;
+  title: string;
+  type: string;
+  url?: string;
+  status: string;
+  progress: number;
+}
+
+export interface KaizenEntry {
+  id: string;
+  date: string;
+  wins: string[];
+  improvements: string;
+  learnings: string;
+  rating: number;
+}
+
+export interface KeyResult {
+  id: string;
+  title: string;
+  completed: boolean;
+  progress: number;
+}
+
+export interface Goal {
+  id: string;
+  title: string;
+  category: string;
+  quarter: string;
+  targetDate: string;
+  progress: number;
+  keyResults: KeyResult[];
+}
+
+export interface HealthLog {
+  date: string;
+  waterGlasses: number;
+  sleepHours: number;
+  sleepQuality: string;
+  workoutMinutes: number;
+  workoutType: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  time: string;
+  read: boolean;
+}
+
+export interface SystemIssue {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  resolved: boolean;
+}
+
+export type UserProfile = UserProfileState;
+
+export interface UserProfileState {
+  name: string;
+  level: number;
+  xp: number;
+  streak: number;
+  lifeScore: number;
+}
+
+export interface DatabaseState {
+  user: UserProfileState;
+  tasks: Task[];
+  habits: Habit[];
+  trackers: TrackerRow[];
+  transactions: Transaction[];
+  budgets: Budget[];
+  budgetItems?: BudgetCategoryItem[];
+  wallets?: Wallet[];
+  savings: SavingsGoal[];
+  studyCards: StudyCard[];
+  studyResources: StudyResource[];
+  kaizenEntries: KaizenEntry[];
+  goals: Goal[];
+  healthLogs: Record<string, HealthLog>;
+  notifications: NotificationItem[];
+  issues: SystemIssue[];
+  studySessions?: any[];
+  timeLogs?: any[];
+}
 
 export type XPAction =
   | 'task_complete_low'

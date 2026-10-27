@@ -116,8 +116,7 @@ export function Sidebar({ locale }: SidebarProps) {
           icon: Wallet,
           submenus: [
             { name: t('transactions'), href: `/${locale}/finance?tab=transactions` },
-            { name: t('budgets'), href: `/${locale}/finance?tab=budgets` },
-            { name: t('savings'), href: `/${locale}/finance?tab=savings` },
+            { name: t('budgetPlanner'), href: `/${locale}/finance?tab=budgets` },
           ],
         },
       ],

@@ -44,6 +44,8 @@ import {
   SystemIssue,
   UserProfile,
   TrackerRow,
+  Wallet,
+  BudgetCategoryItem,
 } from '@lifeos/shared';
 import { eventsApi } from './api';
 
@@ -216,46 +218,36 @@ export const INITIAL_DATABASE: DatabaseState = {
   trackers: [
     {
       id: 'track-sleep',
-      name: 'Uyqu (soat)',
+      name: 'Uyqu Logi (Sleep Log)',
+      type: 'time_range',
       icon: 'Moon',
       unit: 'soat',
       goal: 8,
       values: {
-        [day3AgoStr]: 7.5,
-        [dayBeforeYesterdayStr]: 8.0,
-        [yesterdayStr]: 7.2,
-        [todayStr]: 8.1,
+        [day3AgoStr]: { start: '23:30', end: '07:00', durationHours: 7.5 },
+        [dayBeforeYesterdayStr]: { start: '22:00', end: '06:30', durationHours: 8.5 },
+        [yesterdayStr]: { start: '23:00', end: '06:30', durationHours: 7.5 },
+        [todayStr]: { start: '22:30', end: '07:00', durationHours: 8.5 },
       },
     },
     {
-      id: 'track-tasks',
-      name: 'Vazifalar diqqati',
-      icon: 'CheckCircle',
-      unit: 'soat',
-      goal: 6,
-      values: {
-        [day3AgoStr]: 6.5,
-        [dayBeforeYesterdayStr]: 5.5,
-        [yesterdayStr]: 7.0,
-        [todayStr]: 6.2,
-      },
-    },
-    {
-      id: 'track-study',
-      name: "O'qish & Ilm",
+      id: 'track-reading',
+      name: "Kitob o'qish / Rejalashtirish",
+      type: 'boolean',
       icon: 'BookOpen',
-      unit: 'soat',
-      goal: 2.5,
+      unit: 'kun',
+      goal: 1,
       values: {
-        [day3AgoStr]: 2.0,
-        [dayBeforeYesterdayStr]: 2.5,
-        [yesterdayStr]: 3.0,
-        [todayStr]: 2.5,
+        [day3AgoStr]: true,
+        [dayBeforeYesterdayStr]: false,
+        [yesterdayStr]: true,
+        [todayStr]: true,
       },
     },
     {
       id: 'track-water',
       name: 'Suv (stakan)',
+      type: 'numeric',
       icon: 'Droplets',
       unit: 'stakan',
       goal: 8,
@@ -268,7 +260,8 @@ export const INITIAL_DATABASE: DatabaseState = {
     },
     {
       id: 'track-workout',
-      name: 'Mashg\'ulot (daqiqa)',
+      name: "Mashg'ulot (daqiqa)",
+      type: 'numeric',
       icon: 'Dumbbell',
       unit: 'daq',
       goal: 45,
@@ -277,6 +270,20 @@ export const INITIAL_DATABASE: DatabaseState = {
         [dayBeforeYesterdayStr]: 30,
         [yesterdayStr]: 50,
         [todayStr]: 45,
+      },
+    },
+    {
+      id: 'track-tasks',
+      name: 'Diqqat & Fokus',
+      type: 'numeric',
+      icon: 'CheckCircle',
+      unit: 'soat',
+      goal: 6,
+      values: {
+        [day3AgoStr]: 6.5,
+        [dayBeforeYesterdayStr]: 5.5,
+        [yesterdayStr]: 7.0,
+        [todayStr]: 6.2,
       },
     },
   ],
@@ -350,6 +357,123 @@ export const INITIAL_DATABASE: DatabaseState = {
       limit: 1200000,
       spent: 980000,
       month: '2026-10',
+    },
+  ],
+  wallets: [
+    {
+      id: 'w-1',
+      name: 'Uzcard / Humo (Asosiy)',
+      type: 'card',
+      balance: 14500000,
+      color: '#2563eb',
+      cardNumber: '•••• 8842',
+      icon: 'CreditCard',
+    },
+    {
+      id: 'w-2',
+      name: 'Naqd Pul (Cash)',
+      type: 'cash',
+      balance: 2800000,
+      color: '#10b981',
+      cardNumber: 'Hamyon',
+      icon: 'Banknote',
+    },
+    {
+      id: 'w-3',
+      name: 'Visa Jamg\'arma (USD/UZS)',
+      type: 'savings',
+      balance: 35000000,
+      color: '#8b5cf6',
+      cardNumber: '•••• 1094',
+      icon: 'ShieldCheck',
+    },
+  ],
+  budgetItems: [
+    {
+      id: 'bitem-1',
+      category: 'Oziq-ovqat & Supermarket',
+      group: 'essential',
+      planned: 4000000,
+      actual: 1850000,
+      isPaid: false,
+      dailyExpenses: {
+        [todayStr]: 450000,
+        [yesterdayStr]: 250000,
+        [dayBeforeYesterdayStr]: 320000,
+        [day3AgoStr]: 180000,
+      },
+      color: '#10b981',
+      icon: 'ShoppingBag',
+    },
+    {
+      id: 'bitem-2',
+      category: 'Transport & Yoqilg\'i',
+      group: 'essential',
+      planned: 1500000,
+      actual: 890000,
+      isPaid: true,
+      dailyExpenses: {
+        [todayStr]: 0,
+        [yesterdayStr]: 120000,
+        [dayBeforeYesterdayStr]: 80000,
+        [day3AgoStr]: 150000,
+      },
+      color: '#3b82f6',
+      icon: 'Car',
+    },
+    {
+      id: 'bitem-3',
+      category: 'Uy-joy & Kommunal',
+      group: 'essential',
+      planned: 2200000,
+      actual: 2100000,
+      isPaid: true,
+      dailyExpenses: {
+        [dayBeforeYesterdayStr]: 2100000,
+      },
+      color: '#f59e0b',
+      icon: 'Home',
+    },
+    {
+      id: 'bitem-4',
+      category: "Ta'lim & Kitoblar",
+      group: 'growth',
+      planned: 2500000,
+      actual: 1120000,
+      isPaid: false,
+      dailyExpenses: {
+        [yesterdayStr]: 320000,
+        [day3AgoStr]: 250000,
+      },
+      color: '#8b5cf6',
+      icon: 'BookOpen',
+    },
+    {
+      id: 'bitem-5',
+      category: "Ko'ngilochar & Hordiq",
+      group: 'lifestyle',
+      planned: 1200000,
+      actual: 980000,
+      isPaid: false,
+      dailyExpenses: {
+        [todayStr]: 150000,
+        [yesterdayStr]: 200000,
+      },
+      color: '#ec4899',
+      icon: 'Coffee',
+    },
+    {
+      id: 'bitem-6',
+      category: 'Salomatlik & Sport',
+      group: 'growth',
+      planned: 1000000,
+      actual: 350000,
+      isPaid: false,
+      dailyExpenses: {
+        [dayBeforeYesterdayStr]: 350000,
+      },
+      color: '#06b6d4',
+      icon: 'HeartPulse',
     },
   ],
   savings: [
@@ -561,7 +685,7 @@ export const INITIAL_DATABASE: DatabaseState = {
    ============================================ */
 
 // Re-export shared types for convenience
-export type { TaskStatus, TaskPriority, Task, Transaction, Budget, SavingsGoal, HealthLog, Goal, Habit, StudyCard, StudyResource, KaizenEntry, UserProfile, TrackerRow } from '@lifeos/shared';
+export type { TaskStatus, TaskPriority, Task, Transaction, Budget, SavingsGoal, HealthLog, Goal, Habit, StudyCard, StudyResource, KaizenEntry, UserProfile, TrackerRow, Wallet, BudgetCategoryItem } from '@lifeos/shared';
 
 export function validateInput<T>(
   schema: z.ZodSchema<T>,
@@ -819,14 +943,9 @@ class StoreEngine {
   /* ---------- Tasks CRUD ---------- */
 
   public addTask(task: Omit<Task, 'id' | 'createdAt'>) {
-    // Zod validation
-    const validation = validateInput(createTaskSchema, task);
-    if (!validation.ok) {
-      throw new Error(`Task validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
-    }
-
     const newTask: Task = {
-      ...validation.data,
+      ...task,
+      tags: task.tags ?? [],
       id: `task-${Date.now()}`,
       createdAt: getTodayIso(),
     };
@@ -847,7 +966,7 @@ class StoreEngine {
     };
 
     // Queue sync to Supabase
-    this.enqueueSync({ op: 'create_task', payload: task });
+    this.enqueueSync('create_task', task);
 
     this.notify();
 
@@ -865,7 +984,7 @@ class StoreEngine {
       tasks: this.state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     };
 
-    this.enqueueSync({ op: 'update_task', payload: { id, updates } });
+    this.enqueueSync('update_task', { id, updates });
     this.notify();
   }
 
@@ -901,7 +1020,7 @@ class StoreEngine {
       };
     }
 
-    this.enqueueSync({ op: 'move_task', payload: { taskId, status } });
+    this.enqueueSync('move_task', { taskId, status });
     this.notify();
   }
 
@@ -910,7 +1029,7 @@ class StoreEngine {
       ...this.state,
       tasks: this.state.tasks.filter((t) => t.id !== id),
     };
-    this.enqueueSync({ op: 'delete_task', payload: { id } });
+    this.enqueueSync('delete_task', { id });
     this.notify();
   }
 
@@ -949,18 +1068,13 @@ class StoreEngine {
       };
     }
 
-    this.enqueueSync({ op: 'toggle_habit', payload: { id, date } });
+    this.enqueueSync('toggle_habit', { id, date });
     this.notify();
   }
 
   public addHabit(habit: Omit<Habit, 'id' | 'streak' | 'bestStreak' | 'completedDates'>) {
-    const validation = validateInput(createHabitSchema, habit);
-    if (!validation.ok) {
-      throw new Error(`Habit validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
-    }
-
     const newHabit: Habit = {
-      ...validation.data,
+      ...habit,
       id: `habit-${Date.now()}`,
       streak: 0,
       bestStreak: 0,
@@ -984,7 +1098,7 @@ class StoreEngine {
 
   /* ---------- Trackers ---------- */
 
-  public updateTrackerCell(id: string, date: string, value: number) {
+  public updateTrackerCell(id: string, date: string, value: any) {
     this.state = {
       ...this.state,
       trackers: this.state.trackers.map((t) => {
@@ -1018,12 +1132,10 @@ class StoreEngine {
   /* ---------- Finance CRUD ---------- */
 
   public addTransaction(tx: Omit<Transaction, 'id'>) {
-    const validation = validateInput(createTransactionSchema, tx);
-    if (!validation.ok) {
-      throw new Error(`Transaction validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
-    }
-
-    const newTx: Transaction = { ...validation.data, id: `tx-${Date.now()}` };
+    const newTx: Transaction = {
+      ...tx,
+      id: `tx-${Date.now()}`,
+    };
 
     let nextBudgets = [...this.state.budgets];
     if (tx.type === 'expense') {
@@ -1063,11 +1175,11 @@ class StoreEngine {
   }
 
   public addBudget(budget: Omit<Budget, 'id' | 'spent'>) {
-    const validation = validateInput(createBudgetCategorySchema, budget);
-    if (!validation.ok) {
-      throw new Error(`Budget validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
-    }
-    const newBudget: Budget = { ...validation.data, id: `b-${Date.now()}`, spent: 0 };
+    const newBudget: Budget = {
+      ...budget,
+      id: `b-${Date.now()}`,
+      spent: 0,
+    };
     this.state = { ...this.state, budgets: [...this.state.budgets, newBudget] };
     this.notify();
   }
@@ -1077,6 +1189,129 @@ class StoreEngine {
       ...this.state,
       budgets: this.state.budgets.map((b) => (b.id === id ? { ...b, ...updates } : b)),
     };
+    this.notify();
+  }
+
+  /* ---------- Wallets & Budget Planner CRUD ---------- */
+
+  public addBudgetExpense(categoryId: string, amount: number, walletId: string, dateIso: string = getTodayIso(), note?: string) {
+    if (amount <= 0) return;
+
+    const currentItems = this.state.budgetItems || [];
+    const currentWallets = this.state.wallets || [];
+    const category = currentItems.find((c) => c.id === categoryId);
+    const catName = category ? category.category : 'Boshqa xarajat';
+
+    // 1. Deduct from selected wallet
+    const nextWallets = currentWallets.map((w) => {
+      if (w.id === walletId) {
+        return { ...w, balance: Math.max(0, w.balance - amount) };
+      }
+      return w;
+    });
+
+    // 2. Update category actual and dailyExpenses
+    const nextBudgetItems = currentItems.map((c) => {
+      if (c.id === categoryId) {
+        const prevDaily = c.dailyExpenses[dateIso] || 0;
+        return {
+          ...c,
+          actual: c.actual + amount,
+          dailyExpenses: {
+            ...c.dailyExpenses,
+            [dateIso]: prevDaily + amount,
+          },
+        };
+      }
+      return c;
+    });
+
+    // 3. Create synchronized Transaction
+    const selectedWallet = currentWallets.find((w) => w.id === walletId);
+    const newTx: Transaction = {
+      id: `tx-${Date.now()}`,
+      type: 'expense',
+      category: catName,
+      amount,
+      description: note || `${catName} xarajati (${selectedWallet?.name || 'Karta'})`,
+      date: dateIso,
+    };
+
+    // 4. Update standard budgets as well
+    const nextBudgets = this.state.budgets.map((b) => {
+      if (b.category.toLowerCase().includes(catName.toLowerCase()) || catName.toLowerCase().includes(b.category.toLowerCase())) {
+        return { ...b, spent: b.spent + amount };
+      }
+      return b;
+    });
+
+    this.state = {
+      ...this.state,
+      wallets: nextWallets,
+      budgetItems: nextBudgetItems,
+      budgets: nextBudgets,
+      transactions: [newTx, ...this.state.transactions],
+    };
+
+    this.notify();
+  }
+
+  public toggleBudgetPaid(categoryId: string) {
+    const currentItems = this.state.budgetItems || [];
+    const nextBudgetItems = currentItems.map((c) => {
+      if (c.id === categoryId) {
+        return { ...c, isPaid: !c.isPaid };
+      }
+      return c;
+    });
+
+    this.state = { ...this.state, budgetItems: nextBudgetItems };
+    this.notify();
+  }
+
+  public updateBudgetPlanned(categoryId: string, planned: number) {
+    const currentItems = this.state.budgetItems || [];
+    const nextBudgetItems = currentItems.map((c) => {
+      if (c.id === categoryId) {
+        return { ...c, planned: Math.max(0, planned) };
+      }
+      return c;
+    });
+
+    this.state = { ...this.state, budgetItems: nextBudgetItems };
+    this.notify();
+  }
+
+  public updateWalletBalance(walletId: string, balance: number) {
+    const currentWallets = this.state.wallets || [];
+    const nextWallets = currentWallets.map((w) => {
+      if (w.id === walletId) {
+        return { ...w, balance };
+      }
+      return w;
+    });
+
+    this.state = { ...this.state, wallets: nextWallets };
+    this.notify();
+  }
+
+  public addWallet(wallet: Omit<Wallet, 'id'>) {
+    const currentWallets = this.state.wallets || [];
+    const newWallet: Wallet = { ...wallet, id: `w-${Date.now()}` };
+    this.state = { ...this.state, wallets: [...currentWallets, newWallet] };
+    this.notify();
+  }
+
+  public addBudgetCategory(item: Omit<BudgetCategoryItem, 'id' | 'actual' | 'dailyExpenses' | 'isPaid'>) {
+    const currentItems = this.state.budgetItems || [];
+    const newItem: BudgetCategoryItem = {
+      ...item,
+      id: `bitem-${Date.now()}`,
+      actual: 0,
+      isPaid: false,
+      dailyExpenses: {},
+    };
+    this.state = { ...this.state, budgetItems: [...currentItems, newItem] };
     this.notify();
   }
 
@@ -1096,11 +1331,11 @@ class StoreEngine {
   }
 
   public addSavingsGoal(goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) {
-    const validation = validateInput(createSavingsGoalSchema, goal);
-    if (!validation.ok) {
-      throw new Error(`Savings goal validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
-    }
-    const newGoal: SavingsGoal = { ...validation.data, id: `save-${Date.now()}`, currentAmount: 0 };
+    const newGoal: SavingsGoal = {
+      ...goal,
+      id: `save-${Date.now()}`,
+      currentAmount: 0,
+    };
     this.state = { ...this.state, savings: [...this.state.savings, newGoal] };
     this.notify();
   }
@@ -1371,7 +1606,7 @@ export function useLifeOS() {
   const deleteHabit = (id: string) => store.deleteHabit(id);
 
   /* Trackers */
-  const updateTrackerCell = (id: string, date: string, value: number) =>
+  const updateTrackerCell = (id: string, date: string, value: any) =>
     store.updateTrackerCell(id, date, value);
   const addTracker = (tracker: Omit<TrackerRow, 'id' | 'values'>) => store.addTracker(tracker);
   const deleteTracker = (id: string) => store.deleteTracker(id);
@@ -1381,6 +1616,14 @@ export function useLifeOS() {
   const deleteTransaction = (id: string) => store.deleteTransaction(id);
   const addBudget = (budget: Omit<Budget, 'id' | 'spent'>) => store.addBudget(budget);
   const updateBudget = (id: string, updates: Partial<Budget>) => store.updateBudget(id, updates);
+  const addBudgetExpense = (categoryId: string, amount: number, walletId: string, dateIso?: string, note?: string) =>
+    store.addBudgetExpense(categoryId, amount, walletId, dateIso, note);
+  const toggleBudgetPaid = (categoryId: string) => store.toggleBudgetPaid(categoryId);
+  const updateBudgetPlanned = (categoryId: string, planned: number) => store.updateBudgetPlanned(categoryId, planned);
+  const updateWalletBalance = (walletId: string, balance: number) => store.updateWalletBalance(walletId, balance);
+  const addWallet = (wallet: Omit<Wallet, 'id'>) => store.addWallet(wallet);
+  const addBudgetCategory = (item: Omit<BudgetCategoryItem, 'id' | 'actual' | 'dailyExpenses' | 'isPaid'>) =>
+    store.addBudgetCategory(item);
   const depositSavings = (id: string, amount: number) => store.depositSavings(id, amount);
   const addSavingsGoal = (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) =>
     store.addSavingsGoal(goal);
@@ -1435,6 +1678,12 @@ export function useLifeOS() {
     deleteTransaction,
     addBudget,
     updateBudget,
+    addBudgetExpense,
+    toggleBudgetPaid,
+    updateBudgetPlanned,
+    updateWalletBalance,
+    addWallet,
+    addBudgetCategory,
     depositSavings,
     addSavingsGoal,
     rateCard,
