@@ -236,9 +236,15 @@ export default function TrackerTablePage() {
                   let recordedDays = 0;
 
                   weekDays.forEach((d) => {
-                    const val = tracker.values[d.iso];
-                    if (typeof val === 'number') {
-                      rowSum += val;
+                    const rawVal = tracker.values[d.iso];
+                    const numVal =
+                      typeof rawVal === 'object' && rawVal !== null
+                        ? rawVal.durationHours
+                        : typeof rawVal === 'number'
+                        ? rawVal
+                        : undefined;
+                    if (typeof numVal === 'number') {
+                      rowSum += numVal;
                       recordedDays += 1;
                     }
                   });
@@ -268,9 +274,14 @@ export default function TrackerTablePage() {
                     {/* 7 Days In-Cell Editable Cells */}
                     {weekDays.map((d) => {
                       const rawVal = tracker.values[d.iso];
-                      const hasVal = typeof rawVal === 'number';
-                      const currentVal = hasVal ? rawVal : '';
-                      const isOverGoal = hasVal && rawVal >= tracker.goal;
+                      const currentVal =
+                        typeof rawVal === 'object' && rawVal !== null
+                          ? rawVal.durationHours
+                          : typeof rawVal === 'number'
+                          ? rawVal
+                          : '';
+                      const hasVal = currentVal !== '';
+                      const isOverGoal = hasVal && Number(currentVal) >= tracker.goal;
 
                       return (
                         <td
@@ -344,7 +355,13 @@ export default function TrackerTablePage() {
               {/* 7-Day Visual Bars */}
               <div className="pt-2 flex items-end justify-between gap-2 h-28 border-b border-border/60 pb-2">
                 {weekDays.map((d) => {
-                  const val = tracker.values[d.iso] || 0;
+                  const rawVal = tracker.values[d.iso];
+                  const val =
+                    typeof rawVal === 'object' && rawVal !== null
+                      ? rawVal.durationHours || 0
+                      : typeof rawVal === 'boolean'
+                      ? (rawVal ? 1 : 0)
+                      : Number(rawVal) || 0;
                   const maxDisplay = Math.max(tracker.goal * 1.2, 10);
                   const barHeightPercent = Math.min(100, Math.round((val / maxDisplay) * 100));
                   const reached = val >= tracker.goal;

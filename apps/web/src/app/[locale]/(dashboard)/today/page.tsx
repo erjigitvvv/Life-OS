@@ -406,14 +406,26 @@ export default function TodayPage() {
 
             <div className="space-y-3.5">
               {trackers.slice(0, 3).map((tr) => {
-                const todayVal = tr.values[todayIso] || 0;
-                const percent = Math.min(100, Math.round((todayVal / tr.goal) * 100));
+                const rawVal = tr.values[todayIso];
+                const numericVal =
+                  typeof rawVal === 'object' && rawVal !== null
+                    ? rawVal.durationHours || 0
+                    : typeof rawVal === 'boolean'
+                    ? (rawVal ? 1 : 0)
+                    : Number(rawVal) || 0;
+                const displayVal =
+                  typeof rawVal === 'object' && rawVal !== null
+                    ? `${rawVal.durationHours || 0}`
+                    : typeof rawVal === 'boolean'
+                    ? (rawVal ? '1' : '0')
+                    : `${numericVal}`;
+                const percent = Math.min(100, Math.round((numericVal / (tr.goal || 1)) * 100));
                 return (
                   <div key={tr.id} className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs font-medium">
                       <span className="text-foreground">{tr.name}</span>
                       <span className="text-primary font-bold">
-                        {todayVal} / {tr.goal} {tr.unit}
+                        {displayVal} / {tr.goal} {tr.unit}
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
