@@ -5,3 +5,4 @@ export * from './life-score';
 export * from './sm2';
 export * from './achievements';
 export * from './tracker-rules';
+export * from './notification-rules';

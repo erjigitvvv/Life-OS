@@ -1112,6 +1112,19 @@ class StoreEngine {
         metadata: { taskId, priority: completedTask.priority, tags: completedTask.tags },
       });
       vectorMemory.rebuildFromActivities();
+
+      // Trigger Telegram Smart Notification
+      if (typeof window !== 'undefined') {
+        fetch('/api/telegram/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'task_completed',
+            taskId,
+            taskTitle: completedTask.title,
+          }),
+        }).catch(() => {});
+      }
     }
   }
 
@@ -1167,6 +1180,19 @@ class StoreEngine {
         metadata: { habitId: id, date, streak: currentStreak },
       });
       vectorMemory.rebuildFromActivities();
+
+      // Trigger Telegram Smart Notification
+      if (typeof window !== 'undefined' && isNowCompleted) {
+        fetch('/api/telegram/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'habit_completed',
+            habitId: id,
+            habitName,
+          }),
+        }).catch(() => {});
+      }
     }
   }
 
