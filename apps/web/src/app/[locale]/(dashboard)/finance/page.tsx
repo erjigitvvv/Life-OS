@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useLifeOS, Debt } from '@/lib/store';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLifeOS, Budget, WalletCard, Transaction } from '@/lib/store';
 import { CardStack3D } from '@/components/finance/CardStack3D';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -17,149 +17,161 @@ import {
   AlertTriangle,
   CheckCircle2,
   Calendar,
-  Layers,
   Sparkles,
-  HandCoins,
   ArrowRightLeft,
-  DollarSign,
   TrendingUp,
+  Banknote,
+  Search,
+  Filter,
+  SlidersHorizontal,
+  PieChart,
+  Edit2,
+  Check,
+  ShieldCheck,
+  DollarSign,
 } from 'lucide-react';
 
 export default function FinancePage() {
   const t = useTranslations('finance');
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'budgets' ? 'budgets' : 'transactions';
 
+  // ONLY 2 MAIN FINANCE MODULES AS REQUESTED
+  const tabQuery = searchParams.get('tab');
+  const initialTab = tabQuery === 'budgets' ? 'budgets' : 'transactions';
   const [activeTab, setActiveTab] = useState<'transactions' | 'budgets'>(initialTab);
 
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (currentTab === 'budgets' || currentTab === 'transactions') {
+      setActiveTab(currentTab);
+    }
+  }, [searchParams]);
+
   const {
-    transactions,
-    budgets,
-    cards,
-    debts = [],
+    transactions = [],
+    budgets = [],
+    cards = [],
     addTransaction,
     deleteTransaction,
     addBudget,
     updateBudget,
+    deleteBudget,
     addCard,
     updateCardBalance,
+    updateCard,
     deleteCard,
-    addDebt,
-    updateDebtPayment,
-    toggleDebtCompleted,
-    deleteDebt,
+    autoAllocate503020,
   } = useLifeOS();
 
-  // Modals state
+  // Transaction Modal State
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [txType, setTxType] = useState<'income' | 'expense'>('expense');
   const [txCategory, setTxCategory] = useState('Oziq-ovqat');
   const [txAmount, setTxAmount] = useState<number>(0);
   const [txDesc, setTxDesc] = useState('');
+  const [txCardId, setTxCardId] = useState<string>('');
 
+  // Transaction Filters & Search
+  const [txFilterType, setTxFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [txSearchQuery, setTxSearchQuery] = useState('');
+
+  // Budget Modal State (Add & Edit)
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isEditBudgetModalOpen, setIsEditBudgetModalOpen] = useState(false);
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [budgetCategory, setBudgetCategory] = useState('');
-  const [budgetLimit, setBudgetLimit] = useState<number>(1000000);
+  const [budgetLimit, setBudgetLimit] = useState<number>(2000000);
 
-  // Debt modal and state
-  const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
-  const [debtFilter, setDebtFilter] = useState<'all' | 'borrowed' | 'lent'>('all');
-  const [newDebtType, setNewDebtType] = useState<'borrowed' | 'lent'>('borrowed'); // 'borrowed' = oldim, 'lent' = berdim
-  const [newDebtPerson, setNewDebtPerson] = useState('');
-  const [newDebtAmount, setNewDebtAmount] = useState<number>(0);
-  const [newDebtDueDate, setNewDebtDueDate] = useState('');
-  const [newDebtNote, setNewDebtNote] = useState('');
+  // 50/30/20 Smart Allocator Modal State
+  const [is503020ModalOpen, setIs503020ModalOpen] = useState(false);
+  const [monthlyIncomeInput, setMonthlyIncomeInput] = useState<number>(10000000);
 
-  // Payment modal state
-  const [paymentDebtId, setPaymentDebtId] = useState<string | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  // Predefined Popular Categories
+  const popularCategories = [
+    'Oziq-ovqat',
+    'Uy-joy & Kommunal',
+    'Transport & Yoqilg‘i',
+    'Ta\'lim & Kurslar',
+    'Salomatlik & Sport',
+    'Ko‘ngilochar & Restoran',
+    'Kiyim & Shaxsiy',
+    'Texnika & Gadjetlar',
+    'Kutilmagan xarajatlar',
+  ];
 
-  // Set default due date to 10 days from now
-  useEffect(() => {
-    const future = new Date();
-    future.setDate(future.getDate() + 10);
-    setNewDebtDueDate(future.toISOString().split('T')[0]);
-  }, []);
+  // Calculations: Income, Expense, Balance
+  const totalIncome = useMemo(
+    () =>
+      transactions
+        .filter((tx) => tx.type === 'income')
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
-  // Sync search param tab
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'budgets') setActiveTab('budgets');
-    if (tabParam === 'transactions') setActiveTab('transactions');
-  }, [searchParams]);
-
-  // Calculations
-  const totalIncome = transactions
-    .filter((tx) => tx.type === 'income')
-    .reduce((sum, tx) => sum + tx.amount, 0);
-
-  const totalExpense = transactions
-    .filter((tx) => tx.type === 'expense')
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  const totalExpense = useMemo(
+    () =>
+      transactions
+        .filter((tx) => tx.type === 'expense')
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
   const totalBalance = totalIncome - totalExpense;
 
-  // Monthly budget remaining
-  const totalBudgetLimit = budgets.reduce((sum, b) => sum + b.limit, 0);
-  const totalBudgetSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
-  const budgetRemaining = Math.max(0, totalBudgetLimit - totalBudgetSpent);
+  // Total Net balance from cards & cash wallets
+  const totalCardBalance = useMemo(
+    () => (cards || []).reduce((sum, c) => sum + c.balance, 0),
+    [cards]
+  );
 
-  // Debts calculations
-  const totalBorrowed = debts
-    .filter((d) => d.type === 'borrowed' && !d.isCompleted)
-    .reduce((sum, d) => sum + (d.amount - (d.paidAmount || 0)), 0);
+  // Budget Calculations
+  const totalBudgetLimit = useMemo(
+    () => budgets.reduce((sum, b) => sum + b.limit, 0),
+    [budgets]
+  );
 
-  const totalLent = debts
-    .filter((d) => d.type === 'lent' && !d.isCompleted)
-    .reduce((sum, d) => sum + (d.amount - (d.paidAmount || 0)), 0);
+  const totalBudgetSpent = useMemo(
+    () => budgets.reduce((sum, b) => sum + b.spent, 0),
+    [budgets]
+  );
 
-  const filteredDebts = debts.filter((d) => {
-    if (debtFilter === 'borrowed') return d.type === 'borrowed';
-    if (debtFilter === 'lent') return d.type === 'lent';
-    return true;
-  });
+  const totalBudgetRemaining = Math.max(0, totalBudgetLimit - totalBudgetSpent);
+  const budgetSpentPercent =
+    totalBudgetLimit > 0
+      ? Math.min(100, Math.round((totalBudgetSpent / totalBudgetLimit) * 100))
+      : 0;
 
-  // Countdown timer helper
-  const getDebtTimeRemaining = (dueDateStr: string) => {
-    if (!dueDateStr) return { status: 'normal', text: 'Muddatsiz' };
-    const target = new Date(dueDateStr + 'T23:59:59').getTime();
-    const now = new Date().getTime();
-    const diff = target - now;
+  // Days left in current month for daily spend recommendation
+  const daysLeftInMonth = useMemo(() => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return Math.max(1, lastDay - now.getDate());
+  }, []);
 
-    if (diff <= 0) {
-      const overdueDays = Math.ceil(Math.abs(diff) / (1000 * 60 * 60 * 24));
-      return {
-        status: 'overdue',
-        text: `${overdueDays} kun kechikdi!`,
-      };
-    }
+  const dailyRecommendedSpend = Math.round(totalBudgetRemaining / daysLeftInMonth);
 
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  // Filtered Transactions
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      const matchesType = txFilterType === 'all' || tx.type === txFilterType;
+      const matchesSearch =
+        tx.description.toLowerCase().includes(txSearchQuery.toLowerCase()) ||
+        tx.category.toLowerCase().includes(txSearchQuery.toLowerCase()) ||
+        (tx.cardName && tx.cardName.toLowerCase().includes(txSearchQuery.toLowerCase()));
+      return matchesType && matchesSearch;
+    });
+  }, [transactions, txFilterType, txSearchQuery]);
 
-    if (days === 0) {
-      return {
-        status: 'urgent',
-        text: `${hours} soat qoldi`,
-      };
-    }
-
-    if (days <= 3) {
-      return {
-        status: 'soon',
-        text: `${days} kun, ${hours} soat qoldi`,
-      };
-    }
-
-    return {
-      status: 'normal',
-      text: `${days} kun qoldi`,
-    };
-  };
-
+  // Handle Add Transaction (Mandatory Card Selection + Realtime Balance Sync)
   const handleCreateTx = (e: React.FormEvent) => {
     e.preventDefault();
     if (txAmount <= 0) return;
+    if (!txCardId) {
+      alert("Iltimos, to'lov qaysi karta yoki naqd hamyon orqali amalga oshirilishini tanlang!");
+      return;
+    }
+
+    const chosenCard = (cards || []).find((c) => c.id === txCardId);
 
     addTransaction({
       type: txType,
@@ -167,6 +179,10 @@ export default function FinancePage() {
       amount: Number(txAmount),
       description: txDesc.trim() || (txType === 'income' ? 'Kirim' : 'Xarajat'),
       date: new Date().toISOString().split('T')[0],
+      cardId: txCardId,
+      cardName: chosenCard
+        ? `${chosenCard.name} (${chosenCard.bankName || chosenCard.type.toUpperCase()})`
+        : 'Karta',
     });
 
     setTxAmount(0);
@@ -174,6 +190,7 @@ export default function FinancePage() {
     setIsTxModalOpen(false);
   };
 
+  // Handle Create Budget
   const handleCreateBudget = (e: React.FormEvent) => {
     e.preventDefault();
     if (!budgetCategory.trim() || budgetLimit <= 0) return;
@@ -185,501 +202,572 @@ export default function FinancePage() {
     });
 
     setBudgetCategory('');
+    setBudgetLimit(2000000);
     setIsBudgetModalOpen(false);
   };
 
-  const handleCreateDebt = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDebtPerson.trim() || newDebtAmount <= 0 || !newDebtDueDate) return;
-
-    addDebt({
-      type: newDebtType,
-      person: newDebtPerson.trim(),
-      amount: Number(newDebtAmount),
-      dueDate: newDebtDueDate,
-      note: newDebtNote.trim(),
-    });
-
-    setNewDebtPerson('');
-    setNewDebtAmount(0);
-    setNewDebtNote('');
-    setIsDebtModalOpen(false);
+  // Handle Edit Budget
+  const handleOpenEditBudget = (b: Budget) => {
+    setEditingBudgetId(b.id);
+    setBudgetCategory(b.category);
+    setBudgetLimit(b.limit);
+    setIsEditBudgetModalOpen(true);
   };
 
-  const handleApplyPayment = (e: React.FormEvent) => {
+  const handleSaveEditBudget = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentDebtId || paymentAmount <= 0) return;
+    if (!editingBudgetId || budgetLimit <= 0) return;
 
-    updateDebtPayment(paymentDebtId, Number(paymentAmount));
-    setPaymentDebtId(null);
-    setPaymentAmount(0);
+    updateBudget(editingBudgetId, {
+      category: budgetCategory.trim(),
+      limit: Number(budgetLimit),
+    });
+
+    setIsEditBudgetModalOpen(false);
+    setEditingBudgetId(null);
+  };
+
+  // Quick Expense for a specific Budget Category
+  const handleQuickExpenseForCategory = (category: string) => {
+    setTxType('expense');
+    setTxCategory(category);
+    setTxAmount(0);
+    setTxDesc(`${category} xarajati`);
+    if (cards?.length && !txCardId) setTxCardId(cards[0].id);
+    setIsTxModalOpen(true);
+  };
+
+  // Handle 50/30/20 Smart Allocation
+  const handleApply503020 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (monthlyIncomeInput <= 0) return;
+    autoAllocate503020(monthlyIncomeInput, 'Oylik daromad asosida 50/30/20 avtomatik byudjet');
+    setIs503020ModalOpen(false);
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 font-sans">
-      {/* Header & Tabs */}
-      <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white dark:bg-card p-6 rounded-2xl border border-border shadow-sm">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans">
+      {/* =========================================================
+          TOP HEADER: 2 MAIN MODULES SWITCHER (TRANSACTIONS & BUDGETS)
+          ========================================================= */}
+      <div className="bg-white dark:bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-500/20">
             <Wallet className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-              {t('title')}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                Moliya Markazi
+              </h1>
+              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800/60">
+                Real-Time DB
+              </span>
+            </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Tranzaksiyalar, Byudjet rejalari va Qarzlar/Nasiyalar nazorati
+              {activeTab === 'transactions'
+                ? 'Hamyonlar, kartalar va kirim-chiqim tranzaksiyalari nazorati'
+                : 'Oylik xarajat limitlari, kategoriya trackerlari va tejamkorlik rejasi'}
             </p>
           </div>
         </div>
 
-        {/* Navigation Tabs (Only Transactions & Budgets) */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-border">
+        {/* The 2 Core Navigation Tabs */}
+        <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-border">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'transactions'
                 ? 'bg-white dark:bg-card text-emerald-600 dark:text-emerald-400 shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t('tabTransactions')}
+            <ArrowRightLeft className="w-4 h-4" />
+            <span>Tranzaksiyalar</span>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full font-mono">
+              {transactions.length}
+            </span>
           </button>
+
           <button
             onClick={() => setActiveTab('budgets')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'budgets'
                 ? 'bg-white dark:bg-card text-emerald-600 dark:text-emerald-400 shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t('tabBudgets')}
+            <TrendingUp className="w-4 h-4" />
+            <span>Budget Planner</span>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full font-mono">
+              {budgets.length} ta
+            </span>
           </button>
         </div>
       </div>
 
-      {/* 3D Interactive Apple-Style Card Stack (One click transitions to next card) */}
-      <div className="mb-6">
-        <CardStack3D
-          cards={cards || []}
-          onAddCard={addCard}
-          onUpdateCardBalance={updateCardBalance}
-          onDeleteCard={deleteCard}
-        />
-      </div>
-
-      {/* Overview KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Net Balance */}
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-            {t('totalBalance')}
-          </span>
-          <p
-            className={`text-2xl font-black mt-1.5 font-mono ${
-              totalBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'
-            }`}
-          >
-            {totalBalance.toLocaleString()} so'm
-          </p>
-          <span className="text-xs text-muted-foreground font-medium mt-1 block">
-            Kirim: {totalIncome.toLocaleString()} | Chiqim: {totalExpense.toLocaleString()}
-          </span>
-        </div>
-
-        {/* Monthly Budget Remaining */}
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-            {t('budgetRemaining')}
-          </span>
-          <p className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">
-            {budgetRemaining.toLocaleString()} so'm
-          </p>
-          <span className="text-xs text-muted-foreground font-medium mt-1 block">
-            Jami Limit: {totalBudgetLimit.toLocaleString()} so'm
-          </span>
-        </div>
-
-        {/* Qarzlarim (Oldim) */}
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-              Men Qarz Oldim (Qaytarishim kerak)
-            </span>
-            <span className="p-1 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600">
-              <HandCoins className="w-3.5 h-3.5" />
-            </span>
-          </div>
-          <p className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">
-            {totalBorrowed.toLocaleString()} so'm
-          </p>
-          <span className="text-xs text-muted-foreground font-medium mt-1 block">
-            Faol qarzlar yig'indisi
-          </span>
-        </div>
-
-        {/* Nasiyalarim (Berdim) */}
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-              Men Qarz Berdim (Qaytarishlari kerak)
-            </span>
-            <span className="p-1 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-            </span>
-          </div>
-          <p className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">
-            {totalLent.toLocaleString()} so'm
-          </p>
-          <span className="text-xs text-muted-foreground font-medium mt-1 block">
-            Qaytarilishi kutilayotgan mablag'
-          </span>
-        </div>
-      </div>
-
-      {/* SECTION: QARZLAR VA NASIYALAR (DEBTS & LOANS) WITH TIMER */}
-      <div className="mb-6 bg-white dark:bg-card border border-border rounded-2xl p-6 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-border">
-          <div>
-            <div className="flex items-center gap-2">
-              <HandCoins className="w-5 h-5 text-emerald-600" />
-              <h2 className="text-lg font-bold text-foreground">
-                Qarzlar & Nasiyalar Nazorati (Timerli Muddatlar)
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              "Oldim" (qarzlarim) va "Berdim" (nasiyalarim) hisobi, qaytarish taymeri va to'lov monitoringi
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Filter buttons */}
-            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-border text-xs font-semibold">
-              <button
-                onClick={() => setDebtFilter('all')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  debtFilter === 'all' ? 'bg-white dark:bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                Barchasi ({debts.length})
-              </button>
-              <button
-                onClick={() => setDebtFilter('borrowed')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  debtFilter === 'borrowed' ? 'bg-white dark:bg-card text-amber-600 shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                Oldim
-              </button>
-              <button
-                onClick={() => setDebtFilter('lent')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  debtFilter === 'lent' ? 'bg-white dark:bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                Berdim
-              </button>
-            </div>
-
-            <button
-              onClick={() => setIsDebtModalOpen(true)}
-              className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Qarz Qo'shish</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Debt Cards Grid */}
-        {filteredDebts.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground text-xs">
-            Hozircha hech qanday qarz yoki nasiya qayd etilmagan.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDebts.map((debt) => {
-              const timer = getDebtTimeRemaining(debt.dueDate);
-              const remainingAmount = Math.max(0, debt.amount - (debt.paidAmount || 0));
-              const percentPaid = Math.min(100, Math.round(((debt.paidAmount || 0) / debt.amount) * 100));
-
-              return (
-                <div
-                  key={debt.id}
-                  className={`border rounded-2xl p-5 shadow-sm transition-all flex flex-col justify-between space-y-4 ${
-                    debt.isCompleted
-                      ? 'bg-slate-50/60 dark:bg-slate-900/40 border-border opacity-70'
-                      : debt.type === 'borrowed'
-                      ? 'bg-amber-50/30 dark:bg-amber-950/10 border-amber-200/80 dark:border-amber-900/40 hover:shadow-md'
-                      : 'bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200/80 dark:border-emerald-900/40 hover:shadow-md'
-                  }`}
-                >
-                  <div className="space-y-3">
-                    {/* Header: Type Tag & Realtime Countdown Timer Badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-md ${
-                          debt.type === 'borrowed'
-                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                            : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                        }`}
-                      >
-                        {debt.type === 'borrowed' ? 'Oldim (Qarz)' : 'Berdim (Nasiya)'}
-                      </span>
-
-                      {/* Small Live Countdown Timer */}
-                      {!debt.isCompleted ? (
-                        <div
-                          className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-xs ${
-                            timer.status === 'overdue'
-                              ? 'bg-red-500 text-white animate-pulse'
-                              : timer.status === 'urgent' || timer.status === 'soon'
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                          }`}
-                        >
-                          <Clock className="w-3 h-3" />
-                          <span>{timer.text}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Yopilgan
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Person & Note */}
-                    <div>
-                      <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
-                        {debt.person}
-                      </h3>
-                      {debt.note && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {debt.note}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Amounts and Progress */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between items-baseline text-xs">
-                        <span className="text-muted-foreground font-medium">Qolgan:</span>
-                        <span className="font-mono font-black text-sm text-foreground">
-                          {remainingAmount.toLocaleString()} so'm
-                        </span>
-                      </div>
-
-                      <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            debt.type === 'borrowed' ? 'bg-amber-500' : 'bg-emerald-500'
-                          }`}
-                          style={{ width: `${percentPaid}%` }}
-                        />
-                      </div>
-
-                      <div className="flex justify-between text-[11px] text-muted-foreground font-mono">
-                        <span>Jami: {debt.amount.toLocaleString()}</span>
-                        <span>To'landi: {debt.paidAmount?.toLocaleString() || 0} ({percentPaid}%)</span>
-                      </div>
-                    </div>
-
-                    {/* Date info */}
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono pt-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>Qaytarish muddati: <b>{debt.dueDate}</b></span>
-                    </div>
-                  </div>
-
-                  {/* Actions buttons */}
-                  <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => toggleDebtCompleted(debt.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                        debt.isCompleted
-                          ? 'bg-slate-200 dark:bg-slate-800 text-muted-foreground'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                      }`}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{debt.isCompleted ? 'Qayta ochish' : 'To‘liq yopildi'}</span>
-                    </button>
-
-                    {!debt.isCompleted && (
-                      <button
-                        onClick={() => {
-                          setPaymentDebtId(debt.id);
-                          setPaymentAmount(Math.min(remainingAmount, 500000));
-                        }}
-                        className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        To'lov qo'shish
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => deleteDebt(debt.id)}
-                      className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      title="O'chirish"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* TAB 1: TRANSACTIONS HISTORY */}
+      {/* =========================================================
+          MODULE 1: TRANSACTIONS & WALLETS (KIRIM / CHIQIM)
+          ========================================================= */}
       {activeTab === 'transactions' && (
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-emerald-600" />
-              <h2 className="text-base font-bold text-foreground">
-                Tranzaksiyalar Tarixi (Kirim & Chiqim)
-              </h2>
+        <div className="space-y-6 animate-fade-in">
+          {/* 3D Interactive Apple-Style Card Stack */}
+          <CardStack3D
+            cards={cards || []}
+            onAddCard={addCard}
+            onUpdateCardBalance={updateCardBalance}
+            onUpdateCard={updateCard}
+            onDeleteCard={deleteCard}
+          />
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Jami Sof Balans
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
+                {totalCardBalance.toLocaleString()} so'm
+              </p>
+              <span className="text-xs text-muted-foreground font-medium mt-1 block">
+                Barcha kartalar va naqd pul jamg'armasi
+              </span>
             </div>
-            <button
-              onClick={() => setIsTxModalOpen(true)}
-              className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('addTransaction')}</span>
-            </button>
+
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Jami Kirim
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-emerald-600">
+                +{totalIncome.toLocaleString()} so'm
+              </p>
+              <span className="text-xs text-muted-foreground font-medium mt-1 block">
+                Barcha qayd etilgan daromadlar
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Jami Chiqim
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-rose-600">
+                -{totalExpense.toLocaleString()} so'm
+              </p>
+              <span className="text-xs text-muted-foreground font-medium mt-1 block">
+                Barcha sarf-xarajatlar
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                  Tezkor Harakat
+                </span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Har bir kirim va chiqim tegishli kartadan avtomatik hisoblanadi.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (cards?.length && !txCardId) setTxCardId(cards[0].id);
+                  setIsTxModalOpen(true);
+                }}
+                className="mt-3 w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Yangi Tranzaksiya Qo'shish</span>
+              </button>
+            </div>
           </div>
 
-          <div className="divide-y divide-border/60">
-            {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 px-3 rounded-xl transition-colors group"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                      tx.type === 'income'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'
-                        : 'bg-red-50 dark:bg-red-950/40 text-red-500'
-                    }`}
-                  >
-                    {tx.type === 'income' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
-                  </div>
+          {/* Transactions List & Table with Live Filters */}
+          <div className="bg-white dark:bg-card border border-border rounded-3xl p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
+              <div>
+                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                  <ArrowRightLeft className="w-4 h-4 text-emerald-600" />
+                  <span>Tranzaksiyalar Tarixi ({filteredTransactions.length})</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Bajarilgan barcha to'lovlar va daromadlar real vaqtda saqlanadi
+                </p>
+              </div>
 
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-foreground">
-                      {tx.description}
-                    </h3>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 font-mono">
-                      <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-foreground font-semibold">
-                        {tx.category}
-                      </span>
-                      <span>•</span>
-                      <span>{tx.date}</span>
-                    </div>
-                  </div>
+              {/* Filter Buttons & Search */}
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-48">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Qidirish..."
+                    value={txSearchQuery}
+                    onChange={(e) => setTxSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`font-mono font-bold text-sm sm:text-base ${
-                      tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-border">
+                  <button
+                    onClick={() => setTxFilterType('all')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                      txFilterType === 'all'
+                        ? 'bg-white dark:bg-card text-foreground shadow-xs'
+                        : 'text-muted-foreground'
                     }`}
                   >
-                    {tx.type === 'income' ? '+' : '-'} {tx.amount.toLocaleString()} so'm
-                  </span>
+                    Barchasi
+                  </button>
                   <button
-                    onClick={() => deleteTransaction(tx.id)}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    onClick={() => setTxFilterType('income')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                      txFilterType === 'income'
+                        ? 'bg-white dark:bg-card text-emerald-600 shadow-xs'
+                        : 'text-muted-foreground'
+                    }`}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    Kirim
+                  </button>
+                  <button
+                    onClick={() => setTxFilterType('expense')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                      txFilterType === 'expense'
+                        ? 'bg-white dark:bg-card text-rose-600 shadow-xs'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    Chiqim
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* TAB 2: BUDGETS PLANNER */}
-      {activeTab === 'budgets' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">
-              Kategoriyalar & Oylik Byudjet Rejalashtiruvchi
-            </h2>
-            <button
-              onClick={() => setIsBudgetModalOpen(true)}
-              className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('addBudget')}</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {budgets.map((b) => {
-              const percent = Math.min(100, Math.round((b.spent / b.limit) * 100));
-              const remaining = b.limit - b.spent;
-              const isWarning = percent >= 80;
-
-              return (
-                <div
-                  key={b.id}
-                  className={`bg-white dark:bg-card border rounded-2xl p-5 shadow-sm space-y-4 transition-all ${
-                    isWarning ? 'border-amber-300 dark:border-amber-900/60' : 'border-border'
-                  }`}
+            {/* Transactions Table */}
+            {filteredTransactions.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground text-xs space-y-2">
+                <p>Hozircha hech qanday tranzaksiya qayd etilmagan.</p>
+                <button
+                  onClick={() => setIsTxModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-base text-foreground">{b.category}</h3>
-                      <span className="text-xs text-muted-foreground font-mono">Oylik limit rejam</span>
-                    </div>
-                    {isWarning && (
-                      <span className="text-[11px] font-bold bg-amber-50 text-amber-600 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5" /> 80%+ Sarflandi
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-muted-foreground">Sarflandi: {b.spent.toLocaleString()} so'm</span>
-                      <span className="text-foreground font-bold">{percent}%</span>
-                    </div>
-                    <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          percent >= 90 ? 'bg-red-500' : percent >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs font-mono pt-3 border-t border-border">
-                    <span className="text-muted-foreground">Limit: {b.limit.toLocaleString()}</span>
-                    <span className={`font-bold ${remaining >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-                      Qoldiq: {remaining.toLocaleString()} so'm
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                  Birinchi tranzaksiyani kiritish
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground font-semibold">
+                      <th className="pb-3">Sana</th>
+                      <th className="pb-3">Kategoriya</th>
+                      <th className="pb-3">Izoh / Tafsilot</th>
+                      <th className="pb-3">To'lov Manbasi (Karta)</th>
+                      <th className="pb-3 text-right">Summa</th>
+                      <th className="pb-3 text-center">Amal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                        <td className="py-3.5 font-mono text-muted-foreground">{tx.date}</td>
+                        <td className="py-3.5">
+                          <span className="font-bold text-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
+                            {tx.category}
+                          </span>
+                        </td>
+                        <td className="py-3.5 text-foreground font-medium">{tx.description}</td>
+                        <td className="py-3.5">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+                            <CreditCard className="w-3.5 h-3.5" />
+                            <span>{tx.cardName || 'Asosiy Hamyon'}</span>
+                          </span>
+                        </td>
+                        <td
+                          className={`py-3.5 text-right font-mono font-bold text-sm ${
+                            tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                          }`}
+                        >
+                          {tx.type === 'income' ? '+' : '-'}
+                          {tx.amount.toLocaleString()} so'm
+                        </td>
+                        <td className="py-3.5 text-center">
+                          <button
+                            onClick={() => {
+                              if (confirm('Ushbu tranzaksiyani o\'chirmoqchimisiz? Karta balansi avtomatik tiklanadi.')) {
+                                deleteTransaction(tx.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+                            title="O'chirish"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Add Transaction Modal */}
+      {/* =========================================================
+          MODULE 2: BUDGET PLANNER & TRACKER TABLE (JADVAL)
+          ========================================================= */}
+      {activeTab === 'budgets' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Budget Overview KPI Banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Jami Oylik Byudjet
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-foreground">
+                {totalBudgetLimit.toLocaleString()} so'm
+              </p>
+              <span className="text-xs text-muted-foreground font-medium mt-1 block">
+                {budgets.length} ta kategoriya bo'yicha belgilangan
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Haqiqiy Sarflangan
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-amber-600">
+                {totalBudgetSpent.toLocaleString()} so'm
+              </p>
+              <div className="mt-2 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    budgetSpentPercent > 90 ? 'bg-rose-500' : budgetSpentPercent > 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${budgetSpentPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Qolgan Byudjet Zaxirasi
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-emerald-600">
+                {totalBudgetRemaining.toLocaleString()} so'm
+              </p>
+              <span className="text-xs text-muted-foreground font-medium mt-1 block">
+                Limitdan ortiqcha sarf qilinmagan qoldiq
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                Kunlik Tavsiya Xarajat
+              </span>
+              <p className="text-2xl font-black mt-1.5 font-mono text-primary">
+                ~{dailyRecommendedSpend.toLocaleString()} so'm
+              </p>
+              <span className="text-xs text-muted-foreground font-medium mt-1 block">
+                Oy oxirigacha qolgan {daysLeftInMonth} kun uchun
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Actions Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-card border border-border rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <SlidersHorizontal className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">Dinamik Byudjet Dvigateli</h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Tranzaksiyalar kiritilganda ushbu jadvaldagi sarflar real vaqtda yangilanadi
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIs503020ModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl border border-border bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-xs font-bold text-foreground transition-all flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>50/30/20 Smart Rejalash</span>
+              </button>
+
+              <button
+                onClick={() => setIsBudgetModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Yangi Byudjet Qo'shish</span>
+              </button>
+            </div>
+          </div>
+
+          {/* =========================================================
+              THE CORE BUDGET TRACKER TABLE (JADVALDA BOSHQARISH)
+              ========================================================= */}
+          <div className="bg-white dark:bg-card border border-border rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border/80">
+              <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <span>Oylik Xarajat Byudjetlari Tracker Jadvali</span>
+              </h3>
+              <span className="text-xs font-mono font-bold text-muted-foreground">
+                Umumiy sarf: {budgetSpentPercent}%
+              </span>
+            </div>
+
+            {budgets.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground text-xs space-y-2">
+                <p>Hozircha byudjet limitlari belgilanmagan.</p>
+                <button
+                  onClick={() => setIsBudgetModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs"
+                >
+                  + Birinchi byudjetni belgilash
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground font-semibold">
+                      <th className="pb-3">Kategoriya</th>
+                      <th className="pb-3 text-right">Oylik Limit</th>
+                      <th className="pb-3 text-right">Sarflangan</th>
+                      <th className="pb-3 text-right">Qolgan Qoldiq</th>
+                      <th className="pb-3 px-4 w-44">Sarf Progressi</th>
+                      <th className="pb-3 text-right">Kunlik Tavsiya</th>
+                      <th className="pb-3 text-center">Holat</th>
+                      <th className="pb-3 text-center">Boshqaruv</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {budgets.map((b) => {
+                      const remaining = Math.max(0, b.limit - b.spent);
+                      const percent = b.limit > 0 ? Math.min(100, Math.round((b.spent / b.limit) * 100)) : 0;
+                      const dailyCat = Math.round(remaining / daysLeftInMonth);
+                      const isOver = b.spent >= b.limit;
+                      const isWarning = !isOver && percent >= 75;
+
+                      return (
+                        <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                          <td className="py-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-foreground flex items-center justify-center font-bold">
+                                {b.category.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="font-bold text-sm text-foreground block">{b.category}</span>
+                                <span className="text-[10px] text-muted-foreground">{b.month}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 text-right font-mono font-bold text-foreground">
+                            {b.limit.toLocaleString()} so'm
+                          </td>
+
+                          <td className="py-4 text-right font-mono font-bold text-amber-600">
+                            {b.spent.toLocaleString()} so'm
+                          </td>
+
+                          <td className="py-4 text-right font-mono font-bold">
+                            <span className={isOver ? 'text-rose-600' : 'text-emerald-600'}>
+                              {remaining.toLocaleString()} so'm
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-mono font-bold">
+                                <span>{percent}%</span>
+                                <span>{isOver ? 'Tugadi' : `${100 - percent}% qoldi`}</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    isOver ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 text-right font-mono font-semibold text-muted-foreground">
+                            ~{dailyCat.toLocaleString()} / kun
+                          </td>
+
+                          <td className="py-4 text-center">
+                            {isOver ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-200 dark:border-rose-800/40">
+                                🔴 Limit Oshdi
+                              </span>
+                            ) : isWarning ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-800/40">
+                                🟡 Chegara Yaqin
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800/40">
+                                🟢 Xavfsiz Me'yor
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => handleQuickExpenseForCategory(b.category)}
+                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                title="Ushbu kategoriyaga xarajat qo'shish"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenEditBudget(b)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
+                                title="Limitni tahrirlash"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`${b.category} byudjetini o'chirmoqchimisiz?`)) {
+                                    deleteBudget(b.id);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                title="O'chirish"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          MODAL 1: ADD TRANSACTION (WITH MANDATORY CARD SELECTOR)
+          ========================================================= */}
       {isTxModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-emerald-600" />
-                {t('addTransaction')}
+                <ArrowRightLeft className="w-4 h-4 text-emerald-600" />
+                <span>Yangi Tranzaksiya Qo'shish</span>
               </h3>
               <button
                 onClick={() => setIsTxModalOpen(false)}
@@ -690,36 +778,96 @@ export default function FinancePage() {
             </div>
 
             <form onSubmit={handleCreateTx} className="mt-4 space-y-4">
+              {/* Type Switcher */}
               <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setTxType('expense')}
-                  className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    txType === 'expense' ? 'bg-white dark:bg-card text-red-600 shadow-sm' : 'text-muted-foreground'
+                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                    txType === 'expense'
+                      ? 'bg-white dark:bg-card text-rose-600 shadow-xs'
+                      : 'text-muted-foreground'
                   }`}
                 >
-                  {t('expense')}
+                  Xarajat (Chiqim)
                 </button>
                 <button
                   type="button"
                   onClick={() => setTxType('income')}
-                  className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    txType === 'income' ? 'bg-white dark:bg-card text-emerald-600 shadow-sm' : 'text-muted-foreground'
+                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                    txType === 'income'
+                      ? 'bg-white dark:bg-card text-emerald-600 shadow-xs'
+                      : 'text-muted-foreground'
                   }`}
                 >
-                  {t('income')}
+                  Daromad (Kirim)
                 </button>
               </div>
 
+              {/* Mandatory Card / Cash Selector */}
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5 flex items-center justify-between">
+                  <span>To'lov Manbasi / Karta yoki Naqd Hamyon *</span>
+                  <span className="text-[10px] text-emerald-600 font-extrabold uppercase bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                    Majburiy
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto overscroll-contain p-1 border border-border/80 rounded-xl bg-slate-50/70 dark:bg-slate-900/60">
+                  {(cards || []).map((card) => {
+                    const isSelected = txCardId === card.id;
+                    return (
+                      <button
+                        type="button"
+                        key={card.id}
+                        onClick={() => setTxCardId(card.id)}
+                        className={`p-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-500 shadow-sm'
+                            : 'border-border/60 bg-white dark:bg-card hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                              card.type === 'uzcard'
+                                ? 'bg-blue-600 text-white'
+                                : card.type === 'humo'
+                                ? 'bg-orange-500 text-white'
+                                : card.type === 'visa'
+                                ? 'bg-indigo-900 text-amber-300 font-black'
+                                : card.type === 'mastercard'
+                                ? 'bg-red-600 text-amber-200 font-bold'
+                                : 'bg-emerald-600 text-white'
+                            }`}
+                          >
+                            {card.type === 'cash' ? <Banknote className="w-4 h-4" /> : <CreditCard className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="truncate">
+                            <p className="text-xs font-bold text-foreground truncate">{card.name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">{card.bankName || card.type}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 pl-2 font-mono">
+                          <p className="text-xs font-bold text-foreground">{card.balance.toLocaleString()}</p>
+                          {isSelected && <span className="text-[9px] font-bold text-emerald-600">✓ Tanlandi</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Amount */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  {t('amount')} (so'm) *
+                  Summa (so'm) *
                 </label>
                 <input
                   type="number"
                   step="10000"
                   required
-                  placeholder="masalan: 1500000"
+                  placeholder="masalan: 150000"
                   value={txAmount || ''}
                   onChange={(e) => setTxAmount(parseFloat(e.target.value) || 0)}
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
@@ -727,27 +875,35 @@ export default function FinancePage() {
                 />
               </div>
 
+              {/* Category */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  {t('category')}
+                  Kategoriya *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Oziq-ovqat, Transport, Freelance..."
+                  list="popular-categories"
+                  placeholder="Oziq-ovqat, Transport, Ta'lim..."
                   value={txCategory}
                   onChange={(e) => setTxCategory(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
+                <datalist id="popular-categories">
+                  {popularCategories.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  {t('description')}
+                  Izoh
                 </label>
                 <input
                   type="text"
-                  placeholder="Izoh yozing..."
+                  placeholder="Masalan: Bozorlik, Tushlik, Kitob xaridi..."
                   value={txDesc}
                   onChange={(e) => setTxDesc(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -758,7 +914,7 @@ export default function FinancePage() {
                 <button
                   type="button"
                   onClick={() => setIsTxModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground rounded-xl"
+                  className="px-4 py-2 text-xs font-semibold text-muted-foreground rounded-xl"
                 >
                   Bekor qilish
                 </button>
@@ -774,12 +930,17 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Add Budget Modal */}
+      {/* =========================================================
+          MODAL 2: ADD NEW BUDGET
+          ========================================================= */}
       {isBudgetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-base font-bold text-foreground">Yangi Byudjet Belgilash</h3>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <span>Yangi Byudjet Qo'shish</span>
+              </h3>
               <button
                 onClick={() => setIsBudgetModalOpen(false)}
                 className="p-1.5 rounded-lg text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -790,20 +951,30 @@ export default function FinancePage() {
 
             <form onSubmit={handleCreateBudget} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Kategoriya Nomi *</label>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Kategoriya Nomi *
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Masalan: Restoranlar, Kiyim-kechak..."
+                  list="budget-categories"
+                  placeholder="Masalan: Oziq-ovqat, Transport..."
                   value={budgetCategory}
                   onChange={(e) => setBudgetCategory(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                   autoFocus
                 />
+                <datalist id="budget-categories">
+                  {popularCategories.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Oylik Limit Summasi (so'm) *</label>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Oylik Limit Summasi (so'm) *
+                </label>
                 <input
                   type="number"
                   step="50000"
@@ -826,7 +997,7 @@ export default function FinancePage() {
                   type="submit"
                   className="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow-md hover:bg-emerald-500"
                 >
-                  Yaratish
+                  Byudjetni Saqlash
                 </button>
               </div>
             </form>
@@ -834,111 +1005,57 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Add New Debt Modal */}
-      {isDebtModalOpen && (
+      {/* =========================================================
+          MODAL 3: EDIT BUDGET LIMIT
+          ========================================================= */}
+      {isEditBudgetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <HandCoins className="w-5 h-5 text-emerald-600" />
-                <span>Yangi Qarz / Nasiya Qo'shish</span>
+              <h3 className="text-base font-bold text-foreground">
+                Byudjet Limitini Tahrirlash
               </h3>
               <button
-                onClick={() => setIsDebtModalOpen(false)}
+                onClick={() => setIsEditBudgetModalOpen(false)}
                 className="p-1.5 rounded-lg text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateDebt} className="mt-4 space-y-4">
-              {/* Type Switcher */}
-              <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setNewDebtType('borrowed')}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                    newDebtType === 'borrowed'
-                      ? 'bg-white dark:bg-card text-amber-600 shadow-sm'
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  Men Qarz Oldim
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewDebtType('lent')}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                    newDebtType === 'lent'
-                      ? 'bg-white dark:bg-card text-emerald-600 shadow-sm'
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  Men Qarz Berdim
-                </button>
-              </div>
-
+            <form onSubmit={handleSaveEditBudget} className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  {newDebtType === 'borrowed' ? 'Kimdan oldingiz? (Shaxs/Tashkilot)' : 'Kimga berdingiz? (Shaxs)'} *
+                  Kategoriya Nomi
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="masalan: Akmal aka, TBC Bank..."
-                  value={newDebtPerson}
-                  onChange={(e) => setNewDebtPerson(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  autoFocus
+                  value={budgetCategory}
+                  onChange={(e) => setBudgetCategory(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl font-bold"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Qarz Summasi (so'm) *
+                  Oylik Yangi Limit (so'm) *
                 </label>
                 <input
                   type="number"
                   step="50000"
                   required
-                  placeholder="masalan: 3000000"
-                  value={newDebtAmount || ''}
-                  onChange={(e) => setNewDebtAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Qaytarish Muddati (Vaqt) *</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={newDebtDueDate}
-                  onChange={(e) => setNewDebtDueDate(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Izoh / Sabab
-                </label>
-                <input
-                  type="text"
-                  placeholder="Masalan: Mashina ta'miri, maoshgacha..."
-                  value={newDebtNote}
-                  onChange={(e) => setNewDebtNote(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={budgetLimit}
+                  onChange={(e) => setBudgetLimit(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
                 />
               </div>
 
               <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsDebtModalOpen(false)}
+                  onClick={() => setIsEditBudgetModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-muted-foreground rounded-xl"
                 >
                   Bekor qilish
@@ -947,7 +1064,7 @@ export default function FinancePage() {
                   type="submit"
                   className="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow-md hover:bg-emerald-500"
                 >
-                  Qarzni Saqlash
+                  O'zgarishni Saqlash
                 </button>
               </div>
             </form>
@@ -955,40 +1072,67 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Partial Payment Modal */}
-      {paymentDebtId && (
+      {/* =========================================================
+          MODAL 4: 50/30/20 SMART ALLOCATION
+          ========================================================= */}
+      {is503020ModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-white dark:bg-card p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-base font-bold text-foreground">Qarzga To'lov Kiritish</h3>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>50/30/20 Qoidasi Bo'yicha Byudjet</span>
+              </h3>
               <button
-                onClick={() => setPaymentDebtId(null)}
+                onClick={() => setIs503020ModalOpen(false)}
                 className="p-1.5 rounded-lg text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleApplyPayment} className="mt-4 space-y-4">
+            <form onSubmit={handleApply503020} className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  To'lanayotgan Summa (so'm) *
+                  Oylik Taxminiy Daromadingiz (so'm) *
                 </label>
                 <input
                   type="number"
-                  step="50000"
+                  step="500000"
                   required
-                  value={paymentAmount || ''}
-                  onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                  value={monthlyIncomeInput}
+                  onChange={(e) => setMonthlyIncomeInput(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   autoFocus
                 />
+              </div>
+
+              {/* Preview distribution */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-border space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-blue-600">50% Ehtiyojlar (Needs):</span>
+                  <span className="font-mono font-bold">
+                    {(monthlyIncomeInput * 0.5).toLocaleString()} so'm
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-amber-600">30% Xohishlar (Wants):</span>
+                  <span className="font-mono font-bold">
+                    {(monthlyIncomeInput * 0.3).toLocaleString()} so'm
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-emerald-600">20% Jamg'arma & Zaxira:</span>
+                  <span className="font-mono font-bold">
+                    {(monthlyIncomeInput * 0.2).toLocaleString()} so'm
+                  </span>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setPaymentDebtId(null)}
+                  onClick={() => setIs503020ModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-muted-foreground rounded-xl"
                 >
                   Bekor qilish
@@ -997,13 +1141,13 @@ export default function FinancePage() {
                   type="submit"
                   className="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow-md hover:bg-emerald-500"
                 >
-                  To'lovni Kiritish
+                  Avtomatik Taqsimlash
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

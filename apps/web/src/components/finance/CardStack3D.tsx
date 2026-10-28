@@ -25,6 +25,7 @@ interface CardStack3DProps {
   cards: WalletCard[];
   onAddCard: (card: Omit<WalletCard, 'id'>) => void;
   onUpdateCardBalance: (cardId: string, newBalance: number) => void;
+  onUpdateCard?: (cardId: string, updates: Partial<WalletCard>) => void;
   onDeleteCard: (cardId: string) => void;
 }
 
@@ -123,6 +124,7 @@ export function CardStack3D({
   cards,
   onAddCard,
   onUpdateCardBalance,
+  onUpdateCard,
   onDeleteCard,
 }: CardStack3DProps) {
   // Ordered stack: index 0 is active / front card
@@ -142,6 +144,64 @@ export function CardStack3D({
   const [newCardBank, setNewCardBank] = useState('');
   const [newCardHolder, setNewCardHolder] = useState('MIRHAMID ERJIGITOV');
   const [newCardBalance, setNewCardBalance] = useState<number>(1000000);
+  // Edit card state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editCardId, setEditCardId] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editBank, setEditBank] = useState('');
+  const [editHolder, setEditHolder] = useState('MIRHAMID ERJIGITOV');
+  const [editNumber, setEditNumber] = useState('');
+  const [editBalance, setEditBalance] = useState<number>(0);
+  const [editType, setEditType] = useState<CardType>('uzcard');
+  const [editExpiry, setEditExpiry] = useState('11/28');
+
+  const handleOpenEditCard = (card: WalletCard) => {
+    setEditCardId(card.id);
+    setEditName(card.name);
+    setEditBank(card.bankName || '');
+    setEditHolder(card.holderName || 'MIRHAMID ERJIGITOV');
+    setEditNumber(card.cardNumber || '');
+    setEditBalance(card.balance);
+    setEditType(card.type);
+    setEditExpiry(card.expiryDate || '11/28');
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEditCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCardId || !onUpdateCard) return;
+
+    let gradient = 'from-[#004d40] via-[#00695c] to-[#00897b]';
+    let colorTheme = 'emerald-cyan';
+    if (editType === 'humo') {
+      gradient = 'from-[#b73e00] via-[#bf360c] to-[#1e1b4b]';
+      colorTheme = 'orange-terracotta';
+    } else if (editType === 'visa') {
+      gradient = 'from-[#090d16] via-[#111827] to-[#1e293b]';
+      colorTheme = 'midnight-gold';
+    } else if (editType === 'mastercard') {
+      gradient = 'from-[#1a0b2e] via-[#2d123d] to-[#4c0519]';
+      colorTheme = 'space-crimson';
+    } else if (editType === 'cash') {
+      gradient = 'from-[#052417] via-[#064e3b] to-[#022c22]';
+      colorTheme = 'obsidian-forest';
+    }
+
+    onUpdateCard(editCardId, {
+      name: editName.trim(),
+      bankName: editBank.trim(),
+      holderName: editHolder.trim().toUpperCase(),
+      cardNumber: editNumber.trim(),
+      balance: Number(editBalance),
+      type: editType,
+      expiryDate: editExpiry.trim(),
+      gradient,
+      colorTheme,
+    });
+
+    setIsEditModalOpen(false);
+  };
+
 
   // Total combined balance of all cards + cash
   const totalBalanceAllWallets = cards.reduce((sum, c) => sum + c.balance, 0);
@@ -573,6 +633,16 @@ export function CardStack3D({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        handleOpenEditCard(card);
+                      }}
+                      className="px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-[11px] transition-colors"
+                      title="Kartani tahrirlash"
+                    >
+                      Tahrirlash
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleOpenDeposit(card.id);
                       }}
                       className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-[11px] transition-colors"
@@ -853,6 +923,159 @@ export function CardStack3D({
           </div>
         )}
       </AnimatePresence>
+
+      {/* MODAL 3: EDIT CARD */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 10 }}
+              className="w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111c33] p-6 shadow-2xl relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      Kartani Tahrirlash
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Karta nomi, banki, raqami va balansini o'zgartirish
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEditCard} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Karta Turi *
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {(['uzcard', 'humo', 'visa', 'mastercard', 'cash'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setEditType(t)}
+                        className={`py-2 rounded-xl text-xs font-bold uppercase transition-all ${
+                          editType === t
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Karta Nomi *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Bank Nomi
+                    </label>
+                    <input
+                      type="text"
+                      value={editBank}
+                      onChange={(e) => setEditBank(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Karta Raqami
+                    </label>
+                    <input
+                      type="text"
+                      value={editNumber}
+                      onChange={(e) => setEditNumber(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Muddati (MM/YY)
+                    </label>
+                    <input
+                      type="text"
+                      value={editExpiry}
+                      onChange={(e) => setEditExpiry(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Karta Egasi (F.I.O)
+                  </label>
+                  <input
+                    type="text"
+                    value={editHolder}
+                    onChange={(e) => setEditHolder(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Joriy Balans (so'm) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={editBalance}
+                    onChange={(e) => setEditBalance(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono font-black text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl"
+                  >
+                    Bekor qilish
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-md shadow-emerald-500/20"
+                  >
+                    Saqlash
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

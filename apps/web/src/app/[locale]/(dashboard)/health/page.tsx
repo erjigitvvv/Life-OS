@@ -1,5 +1,7 @@
 'use client';
 
+import { BulletJournalSleepLog } from '@/components/health/BulletJournalSleepLog';
+
 import React, { useState } from 'react';
 import { useLifeOS, HealthLog } from '@/lib/store';
 import { useTranslations } from 'next-intl';
@@ -20,6 +22,7 @@ import {
 
 export default function HealthPage() {
   const t = useTranslations('growth');
+  const [activeHealthTab, setActiveHealthTab] = useState<'sleeplog' | 'metrics'>('sleeplog');
   const { healthLogs, logHealth } = useLifeOS();
 
   const healthLogsList: HealthLog[] = Object.values(healthLogs);
@@ -86,12 +89,38 @@ export default function HealthPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5">
-            <Activity className="w-4 h-4" />
-            <span>Optimal Vital Signs</span>
+          <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-border rounded-xl p-1">
+            <button
+              onClick={() => setActiveHealthTab('sleeplog')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeHealthTab === 'sleeplog'
+                  ? 'bg-white dark:bg-card text-emerald-600 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span>Daftar Sleep Log (Rasm)</span>
+            </button>
+            <button
+              onClick={() => setActiveHealthTab('metrics')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeHealthTab === 'metrics'
+                  ? 'bg-white dark:bg-card text-emerald-600 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>Kunlik Metrikalar</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {activeHealthTab === 'sleeplog' && (
+        <div className="space-y-6">
+          <BulletJournalSleepLog />
+        </div>
+      )}
 
       {/* Main 3 Health Trackers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -64,6 +64,8 @@ export interface Transaction {
   amount: number;
   description: string;
   date: string;
+  cardId?: string;
+  cardName?: string;
 }
 
 export interface Budget {
@@ -201,6 +203,8 @@ export interface HealthLog {
   sleepQuality: string;
   workoutMinutes: number;
   workoutType: string;
+  sleepStart?: string;
+  sleepEnd?: string;
 }
 
 export interface NotificationItem {
@@ -268,7 +272,7 @@ const day3AgoStr = getOffsetDateIso(-3);
 
 export const INITIAL_DATABASE: DatabaseState = {
   user: {
-    name: 'Senior Developer',
+    name: 'Mirhamid Erjigitov',
     level: 14,
     xp: 4820,
     streak: 18,
@@ -999,10 +1003,13 @@ class StoreEngine {
           this.state = {
             ...INITIAL_DATABASE,
             ...parsed,
-            roadmaps: parsed.roadmaps?.length ? parsed.roadmaps : INITIAL_DATABASE.roadmaps,
-            emergencyFund: parsed.emergencyFund || INITIAL_DATABASE.emergencyFund,
-            cards: parsed.cards?.length ? parsed.cards : INITIAL_DATABASE.cards,
-            debts: parsed.debts?.length ? parsed.debts : INITIAL_DATABASE.debts,
+            transactions: Array.isArray(parsed.transactions) ? parsed.transactions : INITIAL_DATABASE.transactions,
+            budgets: Array.isArray(parsed.budgets) ? parsed.budgets : INITIAL_DATABASE.budgets,
+            cards: Array.isArray(parsed.cards) ? parsed.cards : INITIAL_DATABASE.cards,
+            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : INITIAL_DATABASE.tasks,
+            habits: Array.isArray(parsed.habits) ? parsed.habits : INITIAL_DATABASE.habits,
+            trackers: Array.isArray(parsed.trackers) ? parsed.trackers : INITIAL_DATABASE.trackers,
+            user: parsed.user ? { ...INITIAL_DATABASE.user, ...parsed.user } : INITIAL_DATABASE.user,
           };
         } else {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATABASE));
@@ -1272,10 +1279,22 @@ class StoreEngine {
       });
     }
 
+    let nextCards = [...(this.state.cards || [])];
+    if (tx.cardId) {
+      nextCards = nextCards.map((c) => {
+        if (c.id === tx.cardId) {
+          const updatedBal = tx.type === 'expense' ? Math.max(0, c.balance - tx.amount) : c.balance + tx.amount;
+          return { ...c, balance: updatedBal };
+        }
+        return c;
+      });
+    }
+
     this.state = {
       ...this.state,
       transactions: [newTx, ...this.state.transactions],
       budgets: nextBudgets,
+      cards: nextCards,
     };
     this.notify();
 
@@ -1291,9 +1310,33 @@ class StoreEngine {
   }
 
   public deleteTransaction(id: string) {
+    const targetTx = this.state.transactions.find((tx) => tx.id === id);
+    let nextCards = [...(this.state.cards || [])];
+    if (targetTx?.cardId) {
+      nextCards = nextCards.map((c) => {
+        if (c.id === targetTx.cardId) {
+          const revertedBal = targetTx.type === 'expense' ? c.balance + targetTx.amount : Math.max(0, c.balance - targetTx.amount);
+          return { ...c, balance: revertedBal };
+        }
+        return c;
+      });
+    }
+
+    let nextBudgets = [...this.state.budgets];
+    if (targetTx?.type === 'expense') {
+      nextBudgets = nextBudgets.map((b) => {
+        if (b.category.toLowerCase().includes(targetTx.category.toLowerCase()) || targetTx.category.toLowerCase().includes(b.category.toLowerCase())) {
+          return { ...b, spent: Math.max(0, b.spent - targetTx.amount) };
+        }
+        return b;
+      });
+    }
+
     this.state = {
       ...this.state,
       transactions: this.state.transactions.filter((tx) => tx.id !== id),
+      budgets: nextBudgets,
+      cards: nextCards,
     };
     this.notify();
   }
@@ -1315,6 +1358,14 @@ class StoreEngine {
     this.state = {
       ...this.state,
       budgets: this.state.budgets.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+    };
+    this.notify();
+  }
+
+  public deleteBudget(id: string) {
+    this.state = {
+      ...this.state,
+      budgets: this.state.budgets.filter((b) => b.id !== id),
     };
     this.notify();
   }
@@ -1375,6 +1426,22 @@ class StoreEngine {
       metadata: { cardId: newCard.id, type: card.type, balance: card.balance },
     });
     vectorMemory.rebuildFromActivities();
+  }
+
+  public updateCard(cardId: string, updates: Partial<WalletCard>) {
+    this.state = {
+      ...this.state,
+      cards: (this.state.cards || []).map((c) => (c.id === cardId ? { ...c, ...updates } : c)),
+    };
+    this.notify();
+  }
+
+  public updateUser(updates: Partial<UserProfile>) {
+    this.state = {
+      ...this.state,
+      user: { ...this.state.user, ...updates },
+    };
+    this.notify();
   }
 
   public updateCardBalance(cardId: string, newBalance: number) {
@@ -1976,9 +2043,12 @@ export function useLifeOS() {
     deleteTransaction: (id: string) => store.deleteTransaction(id),
     addBudget: (budget: Omit<Budget, 'id' | 'spent'>) => store.addBudget(budget),
     updateBudget: (id: string, updates: Partial<Budget>) => store.updateBudget(id, updates),
+    deleteBudget: (id: string) => store.deleteBudget(id),
     depositSavings: (id: string, amount: number) => store.depositSavings(id, amount),
     addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) => store.addSavingsGoal(goal),
     addCard: (card: Omit<WalletCard, 'id'>) => store.addCard(card),
+    updateCard: (cardId: string, updates: Partial<WalletCard>) => store.updateCard(cardId, updates),
+    updateUser: (updates: Partial<UserProfile>) => store.updateUser(updates),
     updateCardBalance: (cardId: string, newBalance: number) => store.updateCardBalance(cardId, newBalance),
     deleteCard: (cardId: string) => store.deleteCard(cardId),
     depositEmergencyFund: (amount: number) => store.depositEmergencyFund(amount),

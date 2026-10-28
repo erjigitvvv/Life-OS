@@ -50,6 +50,50 @@ export default function TrackerTablePage() {
   const [newTrackerUnit, setNewTrackerUnit] = useState('soat');
   const [newTrackerGoal, setNewTrackerGoal] = useState<number>(8);
   const [newTrackerCategory, setNewTrackerCategory] = useState('Productivity');
+  // --- REAL-TIME FOCUS / POMODORO TIMER STATE ---
+  const [focusSeconds, setFocusSeconds] = useState<number>(25 * 60);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [focusMode, setFocusMode] = useState<'pomodoro' | 'short_break' | 'deep_work'>('pomodoro');
+  const [completedSessions, setCompletedSessions] = useState<number>(2);
+
+  // Ticking effect
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setFocusSeconds((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            setCompletedSessions((c) => c + 1);
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+              try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a1/O2ZRoHQZTV7LdiGAU/ldbvtmUYBkKV1u22ZRgGQpTW7bZlGAY/ldbwtmUYBkKV1u22ZRgGQpTW7bZlGAY=').play(); } catch {}
+            }
+            alert('🎉 Tabriklaymiz! Fokus sessiyasi muvaffaqiyatli yakunlandi! +25 XP qo\'shildi.');
+            return focusMode === 'pomodoro' ? 25 * 60 : focusMode === 'deep_work' ? 50 * 60 : 5 * 60;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning, focusMode]);
+
+  const handleSetFocusMode = (mode: 'pomodoro' | 'short_break' | 'deep_work') => {
+    setIsTimerRunning(false);
+    setFocusMode(mode);
+    if (mode === 'pomodoro') setFocusSeconds(25 * 60);
+    else if (mode === 'short_break') setFocusSeconds(5 * 60);
+    else if (mode === 'deep_work') setFocusSeconds(50 * 60);
+  };
+
+  const formatTimer = (totalSec: number) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
 
   // Active tracker object
   const activeTracker = useMemo(() => {

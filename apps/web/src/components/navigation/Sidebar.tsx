@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname , useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   LayoutDashboard,
@@ -52,7 +52,9 @@ export function Sidebar({ locale }: SidebarProps) {
   const [isTrackersOpen, setIsTrackersOpen] = useState(true);
   const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
 
-  const { user, habits, tasks, trackers, toggleTrackBoolean, roadmaps } = useLifeOS();
+  const { user, habits, tasks, trackers, toggleTrackBoolean, roadmaps, cards, budgets, transactions, debts } = useLifeOS();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams ? searchParams.get('tab') : null;
 
   const todayIso = new Date().toISOString().split('T')[0];
 
@@ -136,8 +138,8 @@ export function Sidebar({ locale }: SidebarProps) {
           href: `/${locale}/finance`,
           icon: Wallet,
           submenus: [
-            { name: t('transactions'), href: `/${locale}/finance?tab=transactions` },
-            { name: t('budgets'), href: `/${locale}/finance?tab=budgets` },
+            { name: 'Tranzaksiyalar', href: `/${locale}/finance?tab=transactions`, badge: transactions?.length ? `${transactions.length} ta` : undefined },
+            { name: 'Budget Planner', href: `/${locale}/finance?tab=budgets`, badge: budgets?.length ? `${budgets.length} ta` : undefined },
           ],
         },
       ],
@@ -208,7 +210,7 @@ export function Sidebar({ locale }: SidebarProps) {
 
       {/* Main Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-card border-r border-border p-3.5 flex flex-col transition-all duration-300 ease-in-out md:static ${
+        className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-card border-r border-border p-3.5 flex flex-col transition-all duration-300 ease-in-out md:static h-full md:h-screen shrink-0 overflow-hidden ${
           isOpenMobile ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0'
         } ${isCollapsedDesktop ? 'md:w-20' : 'md:w-72'}`}
       >
@@ -278,7 +280,7 @@ export function Sidebar({ locale }: SidebarProps) {
         )}
 
         {/* Navigation Section */}
-        <div className="flex-1 space-y-3.5 overflow-y-auto pr-1">
+        <div className="flex-1 space-y-3.5 overflow-y-auto overscroll-contain pr-1">
           {navGroups.map((group) => {
             const isGroupCollapsed = collapsedGroups[group.key];
             return (
@@ -366,7 +368,7 @@ export function Sidebar({ locale }: SidebarProps) {
                           {!isCollapsedDesktop && isSubOpen && hasSubmenus && (
                             <div className="pl-6 pr-1 py-1 space-y-0.5 animate-slide-up">
                               {(item as any).submenus.map((sub: any) => {
-                                const isSubActive = pathname === sub.href;
+                                const isSubActive = pathname.startsWith('/' + locale + '/finance') && sub.href.includes('tab=' + (currentTab || 'transactions'));
                                 return (
                                   <Link
                                     key={sub.name}
@@ -379,7 +381,12 @@ export function Sidebar({ locale }: SidebarProps) {
                                     }`}
                                   >
                                     <span className="w-1 h-1 rounded-full bg-current opacity-60" />
-                                    <span className="truncate">{sub.name}</span>
+                                    <span className="truncate flex-1">{sub.name}</span>
+                                    {sub.badge && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                                        {sub.badge}
+                                      </span>
+                                    )}
                                   </Link>
                                 );
                               })}

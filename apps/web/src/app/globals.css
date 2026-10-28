@@ -121,3 +121,11 @@ body {
     @apply transition-all duration-200 ease-out;
   }
 }
+
+
+/* Custom macOS cursor support matching authentic pack */
+@media (pointer: fine) {
+  html.custom-cursor, html.custom-cursor * {
+    cursor: none !important;
+  }
+}

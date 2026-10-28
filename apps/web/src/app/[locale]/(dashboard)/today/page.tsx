@@ -92,12 +92,16 @@ export default function TodayPage() {
               Live DB
             </span>
           </div>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs font-bold text-primary">Salom, {user.name}!</span>
+            <span className="text-muted-foreground/60">•</span>
+            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-primary" />
             {viewMode === 'daily' && 'Bugungi asosiy vazifalar, odatlar va metrikalar balansi'}
             {viewMode === 'weekly' && 'Ushbu haftalik umumiy mahsuldorlik va o\'sish sur\'ati'}
             {viewMode === 'monthly' && 'Oylik maqsadlar, moliyaviy sarhisob va umumiy dinamika'}
-          </p>
+            </p>
+          </div>
         </div>
 
         {/* View Switcher: Daily, Weekly, Monthly */}
@@ -181,7 +185,7 @@ export default function TodayPage() {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-foreground">Lvl {user.level}</span>
-            <span className="text-xs font-bold text-emerald-600">Senior</span>
+            <span className="text-xs font-bold text-emerald-600 truncate max-w-[140px]" title={user.name}>{user.name}</span>
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">Barcha funksiyalar ochiq</p>
         </div>
