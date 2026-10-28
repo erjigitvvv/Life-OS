@@ -141,6 +141,18 @@ export interface EmergencyFund {
 
 export type CardType = 'uzcard' | 'humo' | 'visa' | 'mastercard' | 'cash';
 
+export interface Debt {
+  id: string;
+  type: 'borrowed' | 'lent'; // 'borrowed' = oldim, 'lent' = berdim
+  person: string;
+  amount: number;
+  paidAmount: number;
+  dueDate: string; // YYYY-MM-DD
+  createdAt: string;
+  note?: string;
+  isCompleted?: boolean;
+}
+
 export interface WalletCard {
   id: string;
   name: string;
@@ -229,6 +241,7 @@ export interface DatabaseState {
   roadmaps: LearningRoadmap[];
   emergencyFund: EmergencyFund;
   cards: WalletCard[];
+  debts: Debt[];
   kaizenEntries: KaizenEntry[];
   goals: Goal[];
   healthLogs: Record<string, HealthLog>;
@@ -768,6 +781,30 @@ export const INITIAL_DATABASE: DatabaseState = {
     targetAmount: 50000000,
     monthlyAllocation: 1500000,
   },
+  debts: [
+    {
+      id: 'debt-1',
+      type: 'borrowed',
+      person: 'Akmal aka',
+      amount: 4500000,
+      paidAmount: 1500000,
+      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString().split('T')[0],
+      note: 'Yangi uskuna (monitor) xaridi uchun',
+      isCompleted: false,
+    },
+    {
+      id: 'debt-2',
+      type: 'lent',
+      person: 'Javohir (Hamkasb)',
+      amount: 2800000,
+      paidAmount: 0,
+      dueDate: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString().split('T')[0],
+      note: 'Freelance loyiha boshlanganda qaytaradi',
+      isCompleted: false,
+    },
+  ],
   cards: [
     {
       id: 'card-uzcard-1',
@@ -965,6 +1002,7 @@ class StoreEngine {
             roadmaps: parsed.roadmaps?.length ? parsed.roadmaps : INITIAL_DATABASE.roadmaps,
             emergencyFund: parsed.emergencyFund || INITIAL_DATABASE.emergencyFund,
             cards: parsed.cards?.length ? parsed.cards : INITIAL_DATABASE.cards,
+            debts: parsed.debts?.length ? parsed.debts : INITIAL_DATABASE.debts,
           };
         } else {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATABASE));
@@ -1563,6 +1601,91 @@ class StoreEngine {
     this.notify();
   }
 
+
+  // --- Debt Management ---
+  public addDebt(debt: Omit<Debt, 'id' | 'createdAt' | 'paidAmount' | 'isCompleted'>) {
+    const newDebt: Debt = {
+      ...debt,
+      id: "debt-" + Date.now(),
+      paidAmount: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+      isCompleted: false,
+    };
+    this.state = {
+      ...this.state,
+      debts: [newDebt, ...(this.state.debts || [])],
+    };
+    this.notify();
+    activityLogger.log({
+      eventType: 'finance_card_balance',
+      category: 'finance',
+      title: "Yangi qarz qayd etildi: " + debt.person + " (" + (debt.type === 'borrowed' ? 'Oldim' : 'Berdim') + " - " + debt.amount.toLocaleString() + " so'm)",
+      metadata: { debtId: newDebt.id, type: debt.type, amount: debt.amount },
+    });
+  }
+
+  public updateDebtPayment(id: string, additionalPay: number) {
+    this.state = {
+      ...this.state,
+      debts: (this.state.debts || []).map((d) => {
+        if (d.id !== id) return d;
+        const newPaid = Math.min(d.amount, (d.paidAmount || 0) + additionalPay);
+        return {
+          ...d,
+          paidAmount: newPaid,
+          isCompleted: newPaid >= d.amount,
+        };
+      }),
+    };
+    this.notify();
+  }
+
+  public toggleDebtCompleted(id: string) {
+    this.state = {
+      ...this.state,
+      debts: (this.state.debts || []).map((d) => {
+        if (d.id !== id) return d;
+        const nextCompleted = !d.isCompleted;
+        return {
+          ...d,
+          isCompleted: nextCompleted,
+          paidAmount: nextCompleted ? d.amount : d.paidAmount,
+        };
+      }),
+    };
+    this.notify();
+  }
+
+  public deleteDebt(id: string) {
+    this.state = {
+      ...this.state,
+      debts: (this.state.debts || []).filter((d) => d.id !== id),
+    };
+    this.notify();
+  }
+
+  public addRoadmapStage(roadmapId: string, stageTitle: string, duration?: string) {
+    const nextRoadmaps = (this.state.roadmaps || []).map((rm) => {
+      if (rm.id !== roadmapId) return rm;
+      const nextStageNum = (rm.stages?.length || 0) + 1;
+      const newStage: RoadmapStage = {
+        id: "stage-" + Date.now(),
+        title: stageTitle,
+        description: duration || '2 hafta',
+        topics: [],
+      };
+      return {
+        ...rm,
+        stages: [...(rm.stages || []), newStage],
+      };
+    });
+    this.state = {
+      ...this.state,
+      roadmaps: nextRoadmaps,
+    };
+    this.notify();
+  }
+
   // --- Learning Roadmaps CRUD ---
   public toggleTopicStatus(
     roadmapId: string,
@@ -1871,6 +1994,12 @@ export function useLifeOS() {
     addRoadmapTopic: (roadmapId: string, stageId: string, topic: Omit<LearningTopic, 'id'>) =>
       store.addRoadmapTopic(roadmapId, stageId, topic),
     addRoadmap: (roadmap: Omit<LearningRoadmap, 'id'>) => store.addRoadmap(roadmap),
+    addDebt: (debt: Omit<Debt, 'id' | 'createdAt' | 'paidAmount' | 'isCompleted'>) => store.addDebt(debt),
+    updateDebtPayment: (id: string, additionalPay: number) => store.updateDebtPayment(id, additionalPay),
+    toggleDebtCompleted: (id: string) => store.toggleDebtCompleted(id),
+    deleteDebt: (id: string) => store.deleteDebt(id),
+    addRoadmapStage: (roadmapId: string, stageTitle: string, duration?: string) =>
+      store.addRoadmapStage(roadmapId, stageTitle, duration),
     addKaizenEntry: (entry: Omit<KaizenEntry, 'id' | 'date'>) => store.addKaizenEntry(entry),
     addGoal: (goal: Omit<Goal, 'id'>) => store.addGoal(goal),
     updateGoalProgress: (goalId: string, progress: number) => store.updateGoalProgress(goalId, progress),

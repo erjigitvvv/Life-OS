@@ -162,9 +162,17 @@ export function CardStack3D({
     return [active, ...others];
   }, [cards, activeCardId]);
 
-  const handleCardClick = (cardId: string) => {
-    setActiveCardId(cardId);
-    // If fanned out, clicking also selects it
+    const handleCardClick = (cardId: string) => {
+    if (cardId === activeCardId) {
+      // Bitta bosish orqali animatsiya bilan keyingi cardga o'tish
+      const currentIndex = cards.findIndex((c) => c.id === activeCardId);
+      const nextIndex = (currentIndex + 1) % cards.length;
+      if (cards[nextIndex]) {
+        setActiveCardId(cards[nextIndex].id);
+      }
+    } else {
+      setActiveCardId(cardId);
+    }
   };
 
   const handleOpenDeposit = (cardId: string) => {

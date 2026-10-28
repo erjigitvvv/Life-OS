@@ -32,6 +32,7 @@ export default function StudyPage() {
     toggleTopicStatus,
     addRoadmapTopic,
     addRoadmap,
+    addRoadmapStage,
     studyCards,
     rateCard,
     addStudyCard,
@@ -44,6 +45,19 @@ export default function StudyPage() {
     roadmaps?.[0]?.id || 'roadmap-cybersecurity'
   );
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'in_progress' | 'not_started'>('all');
+
+  
+  // New Roadmap Modal State
+  const [isAddRoadmapOpen, setIsAddRoadmapOpen] = useState(false);
+  const [newRoadmapTitle, setNewRoadmapTitle] = useState('');
+  const [newRoadmapCategory, setNewRoadmapCategory] = useState<'cybersecurity' | 'ielts' | 'programming' | 'other'>('programming');
+  const [newRoadmapDesc, setNewRoadmapDesc] = useState('');
+  const [newRoadmapDays, setNewRoadmapDays] = useState<number>(30);
+
+  // New Stage Modal State
+  const [isAddStageOpen, setIsAddStageOpen] = useState(false);
+  const [newStageTitle, setNewStageTitle] = useState('');
+  const [newStageDuration, setNewStageDuration] = useState('2 hafta');
 
   // New Topic Modal State
   const [isAddTopicOpen, setIsAddTopicOpen] = useState(false);
@@ -82,6 +96,41 @@ export default function StudyPage() {
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { totalTopics: total, completedTopics: completed, inProgressTopics: inProgress, percent };
   }, [activeRoadmap]);
+
+  
+  const handleCreateRoadmap = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoadmapTitle.trim()) return;
+
+    addRoadmap({
+      title: newRoadmapTitle.trim(),
+      description: newRoadmapDesc.trim() || 'Shaxsiy o‘quv rejasi',
+      category: newRoadmapCategory,
+      icon: 'GraduationCap',
+      color: 'emerald',
+      stages: [
+        {
+          id: 'stage-' + Date.now(),
+          title: 'Asosiy Boshlang‘ich Tushunchalar',
+          description: '1-2 hafta',
+          topics: [],
+        },
+      ],
+    });
+
+    setNewRoadmapTitle('');
+    setNewRoadmapDesc('');
+    setIsAddRoadmapOpen(false);
+  };
+
+  const handleCreateStage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStageTitle.trim() || !activeRoadmap) return;
+
+    addRoadmapStage(activeRoadmap.id, newStageTitle.trim(), newStageDuration.trim() || '2 hafta');
+    setNewStageTitle('');
+    setIsAddStageOpen(false);
+  };
 
   const handleAddTopicSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,6 +231,22 @@ export default function StudyPage() {
       {/* TAB 1: ROADMAP & SKILL TRACKER */}
       {activeTab === 'roadmap' && (
         <div className="space-y-6">
+          
+          {/* Header row with Add Roadmap button */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-emerald-600" />
+              <span>O'quv Xaritalari (Roadmaps)</span>
+            </h2>
+            <button
+              onClick={() => setIsAddRoadmapOpen(true)}
+              className="px-3.5 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Yangi Roadmap</span>
+            </button>
+          </div>
+
           {/* Roadmap Selector Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {roadmaps?.map((rm) => {
@@ -630,6 +695,170 @@ export default function StudyPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      
+      {/* Add Roadmap Modal */}
+      {isAddRoadmapOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#131d33] p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-emerald-600" />
+                <span>Yangi O'quv Roadmapini Yaratish</span>
+              </h3>
+              <button
+                onClick={() => setIsAddRoadmapOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRoadmap} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Roadmap Nomi (Yo'nalish) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="masalan: Full-Stack Next.js, Python AI, IELTS 7.5..."
+                  value={newRoadmapTitle}
+                  onChange={(e) => setNewRoadmapTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Kategoriya
+                  </label>
+                  <select
+                    value={newRoadmapCategory}
+                    onChange={(e) => setNewRoadmapCategory(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="programming">Dasturlash & IT</option>
+                    <option value="cybersecurity">Kiberxavfsizlik</option>
+                    <option value="ielts">Chet Tillari (IELTS)</option>
+                    <option value="other">Boshqa soha</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Maqsadli muddat (kun)
+                  </label>
+                  <input
+                    type="number"
+                    min="7"
+                    required
+                    value={newRoadmapDays}
+                    onChange={(e) => setNewRoadmapDays(parseInt(e.target.value) || 30)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Qisqacha Tavsif
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Maqsad va natijalar haqida..."
+                  value={newRoadmapDesc}
+                  onChange={(e) => setNewRoadmapDesc(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddRoadmapOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-500 rounded-xl"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow-md hover:bg-emerald-500"
+                >
+                  Roadmapni Yaratish
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Stage Modal */}
+      {isAddStageOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#131d33] p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                Yangi Bosqich (Stage) Qo'shish
+              </h3>
+              <button
+                onClick={() => setIsAddStageOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStage} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Bosqich Nomi *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="masalan: Backend API & Auth, Advanced Writing..."
+                  value={newStageTitle}
+                  onChange={(e) => setNewStageTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Taxminiy Davomiyligi
+                </label>
+                <input
+                  type="text"
+                  placeholder="masalan: 2 hafta, 10 kun..."
+                  value={newStageDuration}
+                  onChange={(e) => setNewStageDuration(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStageOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-500 rounded-xl"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow-md hover:bg-emerald-500"
+                >
+                  Bosqichni Qo'shish
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -31,7 +31,6 @@ import {
   Folder,
   FolderOpen,
   GraduationCap,
-  Brain,
 } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import { ThemeToggle } from '../ThemeToggle';
@@ -92,29 +91,16 @@ export function Sidebar({ locale }: SidebarProps) {
           href: `/${locale}/today`,
           icon: LayoutDashboard,
           badge: tasks.filter((t) => t.status !== 'done').length.toString(),
-          submenus: [
-            { name: t('dailyCenter'), href: `/${locale}/today?view=daily` },
-            { name: t('dailyStats'), href: `/${locale}/today?view=stats` },
-          ],
-        },
-        {
-          name: t('twin'),
-          href: `/${locale}/twin`,
-          icon: Brain,
-          badge: 'AI Twin',
-          submenus: [
-            { name: 'Continuous Learning Loop', href: `/${locale}/twin` },
-            { name: 'Dataset-Aware AI Chat', href: `/${locale}/twin` },
-          ],
         },
         {
           name: t('board'),
           href: `/${locale}/board`,
           icon: Kanban,
-          submenus: [
-            { name: 'Backlog & To Do', href: `/${locale}/board#todo` },
-            { name: 'In Progress & Done', href: `/${locale}/board#done` },
-          ],
+        },
+        {
+          name: t('kaizen'),
+          href: `/${locale}/kaizen`,
+          icon: TrendingUp,
         },
       ],
     },
@@ -126,31 +112,18 @@ export function Sidebar({ locale }: SidebarProps) {
           name: t('trackerTable'),
           href: `/${locale}/time`,
           icon: Table,
-          submenus: [
-            { name: t('excelTracker'), href: `/${locale}/time#grid` },
-            { name: 'Trend Dinamikasi', href: `/${locale}/time#trend` },
-          ],
         },
         {
           name: t('habits'),
           href: `/${locale}/habits`,
           icon: CheckSquare,
           badge: habits.length.toString(),
-          submenus: [
-            { name: '30-kunlik Matritsa', href: `/${locale}/habits#matrix` },
-            { name: 'Eslatmalar Rejimi', href: `/${locale}/habits#reminders` },
-          ],
         },
         {
           name: t('study'),
           href: `/${locale}/study`,
           icon: GraduationCap,
           badge: roadmaps?.length ? roadmaps.length.toString() : undefined,
-          submenus: [
-            { name: 'Learning Roadmap', href: `/${locale}/study?tab=roadmap` },
-            { name: t('activeRecall'), href: `/${locale}/study?tab=flashcards` },
-            { name: t('resourceLibrary'), href: `/${locale}/study?tab=resources` },
-          ],
         },
       ],
     },
@@ -165,8 +138,6 @@ export function Sidebar({ locale }: SidebarProps) {
           submenus: [
             { name: t('transactions'), href: `/${locale}/finance?tab=transactions` },
             { name: t('budgets'), href: `/${locale}/finance?tab=budgets` },
-            { name: t('savings'), href: `/${locale}/finance?tab=savings` },
-            { name: '50/30/20 Qoidasi', href: `/${locale}/finance?tab=rule503020` },
           ],
         },
       ],
@@ -179,39 +150,16 @@ export function Sidebar({ locale }: SidebarProps) {
           name: t('growthHub'),
           href: `/${locale}/growth`,
           icon: Sparkles,
-          submenus: [
-            { name: 'Kaizen 1% Retrospektivasi', href: `/${locale}/growth?tab=kaizen` },
-            { name: 'OKR & SMART Maqsadlar', href: `/${locale}/growth?tab=goals` },
-            { name: 'Bio-metrika & Salomatlik', href: `/${locale}/growth?tab=health` },
-          ],
-        },
-        {
-          name: t('kaizen'),
-          href: `/${locale}/kaizen`,
-          icon: TrendingUp,
-          submenus: [
-            { name: t('kaizenJournal'), href: `/${locale}/kaizen#journal` },
-            { name: 'Haftalik Tahlil', href: `/${locale}/kaizen#analysis` },
-          ],
         },
         {
           name: t('goals'),
           href: `/${locale}/goals`,
           icon: Target,
-          submenus: [
-            { name: t('okrGoals'), href: `/${locale}/goals#okr` },
-            { name: 'Choraklik Rejalar', href: `/${locale}/goals#quarter` },
-          ],
         },
         {
           name: t('health'),
           href: `/${locale}/health`,
           icon: HeartPulse,
-          submenus: [
-            { name: t('waterTracker'), href: `/${locale}/health#water` },
-            { name: t('sleepTracker'), href: `/${locale}/health#sleep` },
-            { name: t('workoutLog'), href: `/${locale}/health#workout` },
-          ],
         },
       ],
     },
@@ -223,11 +171,6 @@ export function Sidebar({ locale }: SidebarProps) {
           name: t('settings'),
           href: `/${locale}/settings`,
           icon: Settings,
-          submenus: [
-            { name: 'Mavzu & Ko\'rinish', href: `/${locale}/settings#appearance` },
-            { name: 'Til Sozlamasi', href: `/${locale}/settings#language` },
-            { name: 'Baza & Zaxira', href: `/${locale}/settings#storage` },
-          ],
         },
       ],
     },
@@ -359,6 +302,7 @@ export function Sidebar({ locale }: SidebarProps) {
                     {group.items.map((item) => {
                       const Icon = item.icon;
                       const isMainActive = pathname.startsWith(item.href);
+                      const hasSubmenus = 'submenus' in item && item.submenus;
                       const isSubOpen = openSubmenu === item.name || isMainActive;
 
                       return (
@@ -382,7 +326,7 @@ export function Sidebar({ locale }: SidebarProps) {
                               {!isCollapsedDesktop && (
                                 <>
                                   <span className="flex-1 truncate">{item.name}</span>
-                                  {item.badge && (
+                                  {'badge' in item && item.badge && (
                                     <span
                                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                                         isMainActive
@@ -397,7 +341,7 @@ export function Sidebar({ locale }: SidebarProps) {
                               )}
                             </Link>
 
-                            {!isCollapsedDesktop && item.submenus && (
+                            {!isCollapsedDesktop && hasSubmenus && (
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
@@ -419,9 +363,9 @@ export function Sidebar({ locale }: SidebarProps) {
                           </div>
 
                           {/* Deep Submenus dropdown */}
-                          {!isCollapsedDesktop && isSubOpen && item.submenus && (
+                          {!isCollapsedDesktop && isSubOpen && hasSubmenus && (
                             <div className="pl-6 pr-1 py-1 space-y-0.5 animate-slide-up">
-                              {item.submenus.map((sub) => {
+                              {(item as any).submenus.map((sub: any) => {
                                 const isSubActive = pathname === sub.href;
                                 return (
                                   <Link
@@ -470,7 +414,7 @@ export function Sidebar({ locale }: SidebarProps) {
                 <button
                   onClick={() => setIsAddTrackOpen(true)}
                   className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors"
-                  title="Yangi Track qo‘shish"
+                  title="Yangi Track qo'shish"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -563,7 +507,7 @@ export function Sidebar({ locale }: SidebarProps) {
                     className="w-full flex items-center justify-center gap-1.5 py-1.5 mt-1 border border-dashed border-border/80 hover:border-primary/60 rounded-xl text-xs text-primary font-semibold hover:bg-primary/5 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Yangi Track qo‘shish</span>
+                    <span>Yangi Track qo'shish</span>
                   </button>
                 </div>
               )}
