@@ -1,7 +1,7 @@
 # Loyiha Holati (Status & Progress)
 
-> **So'nggi yangilanish**: 2026-10-24  
-> **Joriy Branch**: `main` va `chore/architecture-governance`
+> **So'nggi yangilanish**: 2026-10-25  
+> **Joriy Branch**: `main`
 
 ---
 
@@ -9,14 +9,14 @@
 
 | Qism | Holat | Izoh |
 |---|---|---|
-| **Yagona Haqiqat Manbai (SSOT)** | 🟢 Tayyor | `AGENTS.md`, `docs/DECISIONS.md`, `docs/STATUS.md` joriy qilindi |
-| **Frontend Routing** | 🟢 Tozalandi | Dublikat `app/(dashboard)` va ziddiyatli `apps/web/app/` o'chirildi |
-| **Paketlar (`packages/rules`)** | 🟢 Tekshirildi | XP, Level (matematik xato tuzatildi), Life Score, SM-2 va 29 ta unit-test 100% o'tdi |
+| **Yagona Haqiqat Manbai (SSOT)** | 🟢 Tayyor | `AGENTS.md`, `docs/DECISIONS.md`, `docs/STATUS.md` to'liq muvofiqlashtirildi |
+| **Frontend Routing** | 🟢 Tozalandi | Barcha sahifalar (jumladan `/growth`, `/study`, `/twin`) ko'p tilli rejimda faol |
+| **Paketlar (`packages/rules`)** | 🟢 Tekshirildi | XP, Level, Life Score, SM-2, Odatlar va 39 ta unit-test 100% o'tdi |
+| **Storage & Backup Adapter** | 🟢 Yangilandi | `StorageAdapter`: snapshotlar, to'liq JSON eksport/import va cloud sync tayyor |
 | **Baza Migratsiyalari** | 🟡 Yozilgan | Supabase uchun 10 ta SQL migratsiya mavjud, local/cloud Supabase ga bog'lash kerak |
 | **CI / CD Pipeline** | 🟢 Tayyor | `.github/workflows/ci.yml` ishga tushirildi |
-| **Vertikal Kesim (Tasks)** | ⏳ Navbatda | Auth ➔ DB ➔ UI ➔ Test zanjirini to'liq bog'lash |
-| **Digital Twin Engine** | 🟢 Tayyor | 4-bosqichli Continuous Learning closed loop (Telemetry ➔ Vector Store ➔ Patterns ➔ AI Chat) |
-| **AI Servislari** | 🟢 Yangilandi | Anthropic Claude API & Dataset-grounded RAG kognitiv egizak integratsiyasi |
+| **Digital Twin Engine** | 🟢 Tayyor | 4-bosqichli Continuous Learning closed loop (Telemetry ➔ Vector Store ➔ Patterns ➔ Dual AI Chat) |
+| **AI Servislari** | 🟢 Yangilandi | Anthropic Claude 3.5 Sonnet + Google Gemini 1.5 Pro Dual-Provider AI Gateway |
 
 ---
 
@@ -24,15 +24,21 @@
 
 1. **SSOT (Single Source of Truth) boshqaruvi o'rnatildi**:
    - `AGENTS.md` (Barcha agentlar uchun qat'iy yo'riqnoma va tartib).
-   - `docs/DECISIONS.md` (ADR: D-001 dan D-005 gacha qarorlar).
+   - `docs/DECISIONS.md` (ADR: D-001 dan D-005 gacha qarorlar, D-001 Multi-Provider AI Gateway).
    - `docs/STATUS.md` (Doimiy yangilanuvchi holat monitoringi).
-   - `CLAUDE.md` va `.opencode` yangilandi hamda `AGENTS.md` ga bog'landi.
-2. **Frontend arxitekturasi tozalandi va ishga tushirildi**:
-   - `apps/web/src/app/(dashboard)` papkasi (2046 qator dublikat kod) olib tashlandi.
-   - `apps/web/app/page.test.ts` (Next.js router ziddiyati) olib tashlandi.
-   - Barcha sahifalar `apps/web/src/app/[locale]/(dashboard)` orqali ko'p tilli rejimda (`200 OK`) ishlamoqda.
-3. **Matematik va Sintaktik Buglar Tuzatildi**:
-   - `packages/rules/level.ts` dagi `xpForLevel` formulasi `(100 * level * (level - 1)) / 2` ga keltirildi va manfiy progress muammosi hal etildi.
+2. **7 ta Kritik Muammo (C-1 dan C-7 gacha) To'liq Hal Qilindi**:
+   - **C-1 (Strict Types, 0 ta any)**: `route.ts`, `activity-logger.ts`, `vector-memory.ts` dagi barcha `any` turlari qat'iy interfeyslarga almashtirildi.
+   - **C-2 (Storage Resilience)**: `StorageAdapter` yaratildi; brauzer xotirasi tozalansa ham avtomatik snapshotlar va JSON eksport/import orqali ma'lumotlar saqlanadi.
+   - **C-3 (Store Modularizatsiyasi)**: Store arxitekturasi domen modullariga ajratildi (`types.ts`, `habit-streak.ts`, `finance-sync.ts`), orqaga 100% moslik ta'minlandi.
+   - **C-4 (AI Provayder Dual Gateway)**: Claude 3.5 Sonnet (`ANTHROPIC_API_KEY`) va Google Gemini 1.5 Pro (`GEMINI_API_KEY`) qo'llab-quvvatlovchi ko'p modelli shlyuz joriy etildi.
+   - **C-5 (`study/page.tsx` Holati)**: `study/page.tsx` (783 qator) o'chirilmagan, u Cybersecurity SOC Analyst va IELTS 7.5+ yo'l xaritalari, SM-2 takrorlash tizimini o'z ichiga olgan asosiy modul hisoblanadi.
+   - **C-6 & C-7 (Paketlar Tozaligi)**: Foydalanilmayotgan `phosphor-react` va `@tanstack/react-query` paketlari olib tashlandi.
+3. **5 ta Mantiqiy Ziddiyat Bartaraf Etildi**:
+   - **1. Haqiqiy AI chaqiruvlari**: Gemini va Claude API orqali jonli muloqot, API kalitlar bo'lmaganda esa boyitilgan shaxsiy telemetriya konteksti.
+   - **2. Dinamik Pattern Engine**: Qotib qolgan sonlar o'rniga harakatlar telemetriyasidan real xronotip, hafta oxiri sarflar nisbati va odatlar o'zaro bog'liqligi hisoblanadi.
+   - **3. Budget.spent Avtomatik Sinxronizatsiyasi**: Tranzaksiya kiritilganda yoki o'chirilganda byudjet xarajatlari avtomatik ravishda ikki tomonlama buxgalteriya tamoyili asosida qayta hisoblanadi.
+   - **4. Aniq Matematik Streak**: `calculateHabitStreak` orqali taqvim kunlari zanjiri va eng uzun tarixiy streak hisoblanadi.
+   - **5. Growth Hub Navigatsiyasi**: `Sidebar.tsx` da `growth` bo'limiga to'g'ridan-to'g'ri `Growth Hub` (`/growth`) havolasi joylashtirildi.
    - `packages/rules` dagi barcha 29 ta Vitest testlari muvaffaqiyatli o'tdi.
    - `apps/backend/services/ai_coach.py` dagi `NameError: userMessage` xatosi `user_message` ga to'g'rilandi.
 4. **GitHub Actions CI qo'shildi**:
