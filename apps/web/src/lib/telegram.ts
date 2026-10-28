@@ -7,6 +7,8 @@
  * 3. AI Text generator compliant with D-001 (Claude 3.5 Sonnet primary with local Uzbek cognitive fallback)
  */
 
+import { completeWithAi } from './ai-gateway';
+
 export interface TelegramSendMessageOptions {
   parse_mode?: 'Markdown' | 'HTML';
   reply_markup?: {
@@ -160,60 +162,23 @@ export function parseTelegramQuickText(text: string): {
 }
 
 /**
- * Generate AI Coach response (D-001: Claude 3.5 Sonnet -> Deterministic Cognitive Fallback)
+ * Generate AI Coach response (Multi-Provider High Availability: Groq -> Gemini -> Claude -> Local)
  */
 export async function generateTelegramAiResponse(userMessage: string, context?: any): Promise<string> {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-  if (anthropicKey) {
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 600,
-          system: `Siz Mirhamid Erjigitovning Life-OS shaxsiy intizom, mahsuldorlik va kognitiv rivojlanish murabbiyisiz (AI Coach).
+  const systemPrompt = `Siz Mirhamid Erjigitovning Life-OS shaxsiy intizom, mahsuldorlik va kognitiv rivojlanish murabbiyisiz (AI Coach).
 Javoblaringiz har doim o'zbek tilida, aniq, qisqa, samimiy va amaliy bo'lsin.
-Foydalanuvchini harakatga, intizomga va kunlik odatlarni to'ldirishga undashingiz kerak. Telegram formatiga mos Markdown formatidan foydalaning.`,
-          messages: [{ role: 'user', content: userMessage }],
-        }),
-      });
+Foydalanuvchini harakatga, intizomga va kunlik odatlarni to'ldirishga undashingiz kerak. Telegram formatiga mos Markdown formatidan foydalaning.`;
 
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.content?.[0]?.text;
-        if (text) return text;
-      }
-    } catch (e) {
-      console.warn('[Claude API Error]:', e);
-    }
+  try {
+    const result = await completeWithAi({
+      systemPrompt,
+      userPrompt: userMessage,
+      maxTokens: 600,
+      temperature: 0.7,
+    });
+    return result.text;
+  } catch (err: any) {
+    console.warn('[AI Telegram Error]:', err);
+    return "💡 Qaydingiz qabul qilindi! Life-OS tizimi sizning har bir harakatingizni kuzatib, tahlil qilib bormoqda. Rejangizdagi keyingi vazifani yopishga tayyormisiz? 🚀";
   }
-
-  // Deterministic local cognitive response fallback (Uzbek)
-  const lower = userMessage.toLowerCase();
-  if (lower.includes('salom') || lower.includes('assalomu')) {
-    return `Assalomu alaykum, Mirhamid! 🚀 Bugungi intizom va rejalaringizga yordam berishga tayyorman. 
-
-Buyruqlar:
-• \`/today\` — Bugungi reja va ko'rsatkichlar
-• \`/habits\` — Odatlar ro'yxati va tasdiqlash
-• \`/tasks\` — Bajarilishi kerak bo'lgan vazifalar
-• \`/budget\` — Moliya va byudjet holati
-
-Tezkor yozish:
-_«2 soat kod yozish»_, _«45000 so'm tushlik»_, yoki _«task: hisobot tayyorlash»_ deb yozsangiz, darhol qayd qilaman!`;
-  }
-
-  if (lower.includes('charchadim') || lower.includes('dangasa') || lower.includes('motivatsiya')) {
-    return `⚡️ *Charchoq - bu yangi darajaga o'tish arafasidagi sinov!*
-
-Bir oz tanaffus oling: 1 stakan toza suv iching, chuqur nafas oling yoki 5 daqiqa ko'zlaringizni dam oldiring. Keyin eng kichik birgina qadamni qo'ying. Katta yutuqlar kichik intizomdan boshlanadi! 🔥`;
-  }
-
-  return `💡 Qaydingiz qabul qilindi! Life-OS tizimi sizning har bir harakatingizni kuzatib, tahlil qilib bormoqda. Rejangizdagi keyingi vazifani yopishga tayyormisiz?`;
 }

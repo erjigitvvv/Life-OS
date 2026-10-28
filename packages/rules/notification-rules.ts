@@ -313,3 +313,112 @@ export function formatTelegramNotificationPayload(decision: NotificationDecision
       : undefined,
   };
 }
+
+/**
+ * 4 Daily Quadrants Smart Notification Algorithm (Tong, Tushlik, Kechki, Tungi)
+ */
+export type DailyQuadrant = 'morning' | 'midday' | 'evening' | 'night';
+
+export interface DailyQuadrantInfo {
+  quadrant: DailyQuadrant;
+  nameUz: string;
+  startHour: number;
+  endHour: number;
+  title: string;
+  defaultAdvice: string;
+  buttons: TelegramInlineButton[][];
+}
+
+export const DAILY_QUADRANTS: Record<DailyQuadrant, DailyQuadrantInfo> = {
+  morning: {
+    quadrant: 'morning',
+    nameUz: 'Tonggi start',
+    startHour: 7,
+    endHour: 10,
+    title: '🌅 Tonggi Smart Eslatma: Kunning buyuk boshlanishi!',
+    defaultAdvice:
+      'Xayrli tong, Mirhamid! Kuningizni eng muhim 3 ta vazifani belgilashdan boshlang. Ertalabki 1 soatlik intizom butun kunlik natijangizni belgilaydi. Rejangizdagi ertalabki odatlarni bajaring!',
+    buttons: [
+      [
+        { text: '⚡️ Ertalabki odatlar', callback_data: 'view_habits' },
+        { text: '📋 Bugungi reja', callback_data: 'view_today' },
+      ],
+      [{ text: '📲 Web platformani ochish', url: 'http://localhost:3000/uz/today' }],
+    ],
+  },
+  midday: {
+    quadrant: 'midday',
+    nameUz: 'Tushlik & Diqqat',
+    startHour: 12,
+    endHour: 15,
+    title: '☀️ Tushlik Smart Eslatmasi: Energiya va Diqqatni qayta tiklash',
+    defaultAdvice:
+      'Kunning yarmi ortda qoldi! Bir stakan toza suv iching, qisqa nafas mashqini bajaring va ikkinchi yarim kunga diqqatni (Deep Work) jamlang. Vazifalaringizni ko\'zdan kechiring.',
+    buttons: [
+      [
+        { text: '💧 Suv ichdim (+250ml)', callback_data: 'tracker_water' },
+        { text: '🎯 Vazifalarni ko\'rish', callback_data: 'view_tasks' },
+      ],
+      [{ text: '💳 Tushlik xarajatini kiritish', callback_data: 'quick_expense' }],
+    ],
+  },
+  evening: {
+    quadrant: 'evening',
+    nameUz: 'Kechki sarhisob',
+    startHour: 18,
+    endHour: 21,
+    title: '🌙 Kechki Smart Eslatma: Kun sarhisobi va g\'alabalar',
+    defaultAdvice:
+      'Kech kirdi! Bugun qanday marralarni zabt etdingiz? Bajarilmagan odatlarni yopib, streak zanjirini saqlab qolish va byudjet sarflarini tekshirish uchun ayni payt.',
+    buttons: [
+      [
+        { text: '✅ Odatlarni yopish', callback_data: 'view_habits' },
+        { text: '💰 Byudjet holati', callback_data: 'view_budget' },
+      ],
+      [{ text: '📊 Bugungi sarhisob', callback_data: 'view_today' }],
+    ],
+  },
+  night: {
+    quadrant: 'night',
+    nameUz: 'Tungi tiklanish',
+    startHour: 22,
+    endHour: 24,
+    title: '🌌 Tungi Smart Eslatma: Kaizen va Sokin Uyqu',
+    defaultAdvice:
+      'Kun yakunlandi! Bugungi barcha mehnatlaringiz uchun minnatdor bo\'ling. Ekranlarni chetga qo\'ying, uyqu trekerini belgilang va chuqur dam oling. Xayrli tun!',
+    buttons: [
+      [{ text: '🛌 Uyqu vaqtini kiritish', url: 'http://localhost:3000/uz/health' }],
+      [{ text: '✨ Ertangi kunga tayyorgarlik', callback_data: 'view_today' }],
+    ],
+  },
+};
+
+/**
+ * Determine which daily quadrant corresponds to the given hour
+ */
+export function getDailyQuadrantForHour(hour: number): DailyQuadrant | null {
+  if (hour >= 7 && hour < 10) return 'morning';
+  if (hour >= 12 && hour < 15) return 'midday';
+  if (hour >= 18 && hour < 21) return 'evening';
+  if (hour >= 22 || hour < 1) return 'night';
+  return null;
+}
+
+/**
+ * Smart evaluation of daily quadrant notification with strict single-trigger check
+ */
+export function evaluateDailyQuadrantNotification(
+  currentHour: number,
+  sentQuadrantsToday: DailyQuadrant[] = []
+): DailyQuadrantInfo | null {
+  const currentQuadrant = getDailyQuadrantForHour(currentHour);
+  if (!currentQuadrant) return null;
+
+  // Strict single-trigger rule per quadrant per day
+  if (sentQuadrantsToday.includes(currentQuadrant)) {
+    return null;
+  }
+
+  return DAILY_QUADRANTS[currentQuadrant];
+}
+

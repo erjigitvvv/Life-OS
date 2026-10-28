@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { completeWithAi } from '@/lib/ai-gateway';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,12 +40,9 @@ export async function POST(req: NextRequest) {
 - Daraja (Level): Level ${systemStats.level || 14} (${systemStats.xp || 4820} XP)
     `.trim();
 
-    // Check if Anthropic Claude API Key is configured in environment
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-    if (anthropicKey) {
-      try {
-        const systemPrompt = `Siz Life-OS foydalanuvchisi (Mirhamid Erjigitov) ning "Raqamli Egizagi" (Digital Twin) va shaxsiy Continuous Learning kognitiv intellektisiz.
+    // Multi-Provider High-Availability AI Pipeline (Groq -> Gemini -> Claude -> Local)
+    try {
+      const systemPrompt = `Siz Life-OS foydalanuvchisi (Mirhamid Erjigitov) ning "Raqamli Egizagi" (Digital Twin) va shaxsiy Continuous Learning kognitiv intellektisiz.
 Siz hech qachon umumiy, qolipli (generic) javoblar bermaysiz. Siz faqat foydalanuvchining haqiqiy o'tgan datasetiga, harakatlar tarixiga, moliyaviy sarflariga, odatlariga va vektorli xotirasiga asoslanib gapirasiz.
 
 FOYDALANUVCHINING ANIQ DATASETI VA STATISTIKASI:
@@ -65,41 +63,22 @@ KO'RSATMALAR:
 3. Agar foydalanuvchi buyruq bersa (masalan: "Ertaga nima qilay?", "Pulimni tahlil qil", "Nega charchayapman?"), uning shaxsiy odatlari va peak hours qonuniyatiga mos xolis strategiya bering.
 4. Javobingiz aniq, ixcham va amaliy bo'lsin. Keraksiz umumiy gaplarni yozmang.`;
 
-        const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20240620',
-            max_tokens: 800,
-            system: systemPrompt,
-            messages: [{ role: 'user', content: message }],
-          }),
-        });
+      const aiResult = await completeWithAi({
+        systemPrompt,
+        userPrompt: message,
+        maxTokens: 800,
+        temperature: 0.7,
+      });
 
-        if (anthropicRes.ok) {
-          const claudeData = await anthropicRes.json();
-          const replyText =
-            claudeData.content?.[0]?.type === 'text'
-              ? claudeData.content[0].text
-              : 'Kechirasiz, javob matnini o\'qishda xatolik yuz berdi.';
-
-          return NextResponse.json({
-            reply: replyText,
-            provider: 'anthropic-claude',
-            model: 'claude-3-5-sonnet',
-            analyzedDatasetEvents: activities.length,
-          });
-        } else {
-          const errText = await anthropicRes.text();
-          console.warn('[DigitalTwin API] Anthropic API returned status:', anthropicRes.status, errText);
-        }
-      } catch (err: any) {
-        console.warn('[DigitalTwin API] Anthropic call failed, falling back to local cognitive engine:', err?.message);
-      }
+      return NextResponse.json({
+        reply: aiResult.text,
+        provider: aiResult.provider,
+        model: aiResult.model,
+        latencyMs: aiResult.latencyMs,
+        analyzedDatasetEvents: activities.length,
+      });
+    } catch (err: any) {
+      console.warn('[DigitalTwin API] AI call error, falling back to local cognitive engine:', err?.message);
     }
 
     // Local Cognitive Digital Twin Engine (Runs deterministically from the real dataset when API key is not present)

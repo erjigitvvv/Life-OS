@@ -3,6 +3,8 @@ import {
   evaluateNotificationTriggers,
   formatTelegramNotificationPayload,
   getTimeOfDayPeriod,
+  getDailyQuadrantForHour,
+  evaluateDailyQuadrantNotification,
   UZBEK_HOURLY_QUOTES,
   UZBEK_TASK_PRAISE_MESSAGES,
 } from './notification-rules';
@@ -136,5 +138,36 @@ describe('Notification Rules & Smart Engine', () => {
     expect(payload.chat_id).toBe('123456789');
     expect(payload.parse_mode).toBe('Markdown');
     expect(payload.reply_markup?.inline_keyboard[0][0].callback_data).toBe('habit_done:kitob');
+  });
+
+  describe('4 Daily Quadrants Smart Notification Algorithm', () => {
+    it('maps hours to correct daily quadrants (morning, midday, evening, night)', () => {
+      expect(getDailyQuadrantForHour(8)).toBe('morning');
+      expect(getDailyQuadrantForHour(13)).toBe('midday');
+      expect(getDailyQuadrantForHour(19)).toBe('evening');
+      expect(getDailyQuadrantForHour(23)).toBe('night');
+      expect(getDailyQuadrantForHour(0)).toBe('night');
+      expect(getDailyQuadrantForHour(4)).toBeNull(); // Off-hours (no spam)
+      expect(getDailyQuadrantForHour(16)).toBeNull();
+    });
+
+    it('evaluates daily quadrant notification and returns content with inline buttons', () => {
+      const morningNotice = evaluateDailyQuadrantNotification(8, []);
+      expect(morningNotice).toBeDefined();
+      expect(morningNotice?.quadrant).toBe('morning');
+      expect(morningNotice?.title).toContain('Tonggi Smart Eslatma');
+      expect(morningNotice?.buttons.length).toBeGreaterThan(0);
+    });
+
+    it('strictly enforces single notification per quadrant per day (prevents duplicate spam)', () => {
+      // If morning has already been sent today:
+      const morningDuplicate = evaluateDailyQuadrantNotification(8, ['morning']);
+      expect(morningDuplicate).toBeNull();
+
+      // But midday will still fire when hour hits 13:
+      const middayNotice = evaluateDailyQuadrantNotification(13, ['morning']);
+      expect(middayNotice).toBeDefined();
+      expect(middayNotice?.quadrant).toBe('midday');
+    });
   });
 });
